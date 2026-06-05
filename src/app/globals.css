@@ -1,0 +1,136 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Design tokens
+   All tokens hold FULL color values (hex/rgba), so both shadcn
+   utility classes (via tailwind.config `var(--x)` mapping) and the
+   existing inline styles that read these vars directly work off one
+   source of truth — no hsl() wrapper, no naming collisions.
+   ============================================================ */
+:root {
+  /* shadcn base */
+  --background:            #ffffff;
+  --foreground:            #1a1a1a;
+  --card:                  #ffffff;
+  --card-foreground:       #1a1a1a;
+  --popover:               #ffffff;
+  --popover-foreground:    #1a1a1a;
+  --primary:               #1D9E75;
+  --primary-foreground:    #ffffff;
+  --secondary:             #f1efe8;
+  --secondary-foreground:  #1a1a1a;
+  --muted:                 #f8f8f6;
+  --muted-foreground:      #6b6b67;
+  --accent:                #E1F5EE;
+  --accent-foreground:     #0F6E56;
+  --destructive:           #C0392B;
+  --destructive-foreground:#ffffff;
+  --border:                rgba(0,0,0,0.10);
+  --input:                 rgba(0,0,0,0.14);
+  --ring:                  #1D9E75;
+  --radius:                0.6rem;
+
+  /* Legacy design tokens used by the existing inline-styled components */
+  --color-background-primary:   #ffffff;
+  --color-background-secondary: #f8f8f6;
+  --color-background-tertiary:  #f1efe8;
+  --color-text-primary:         #1a1a1a;
+  --color-text-secondary:       #5f5f5c;
+  --color-text-tertiary:        #a0a09d;
+  --color-border-secondary:     rgba(0,0,0,0.16);
+  --color-border-tertiary:      rgba(0,0,0,0.10);
+
+  /* Misc legacy */
+  --background-tertiary: #f1efe8;
+  --border-em:           rgba(0,0,0,0.22);
+  --teal:                #1D9E75;
+
+  /* Typography */
+  --font-sans: var(--font-dm-sans, 'DM Sans', system-ui, sans-serif);
+  --font-mono: 'DM Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+.dark {
+  --background:            #111110;
+  --foreground:            #e8e8e4;
+  --card:                  #1a1a18;
+  --card-foreground:       #e8e8e4;
+  --popover:               #1a1a18;
+  --popover-foreground:    #e8e8e4;
+  --primary:               #25b486;
+  --primary-foreground:    #04241c;
+  --secondary:             #222220;
+  --secondary-foreground:  #e8e8e4;
+  --muted:                 #1a1a18;
+  --muted-foreground:      #9a9a92;
+  --accent:                #123a2e;
+  --accent-foreground:     #8fe3c6;
+  --destructive:           #e5645a;
+  --destructive-foreground:#1a0a08;
+  --border:                rgba(255,255,255,0.10);
+  --input:                 rgba(255,255,255,0.16);
+  --ring:                  #25b486;
+
+  --color-background-primary:   #111110;
+  --color-background-secondary: #1a1a18;
+  --color-background-tertiary:  #222220;
+  --color-text-primary:         #e8e8e4;
+  --color-text-secondary:       #9a9a92;
+  --color-text-tertiary:        #555550;
+  --color-border-secondary:     rgba(255,255,255,0.18);
+  --color-border-tertiary:      rgba(255,255,255,0.10);
+
+  --background-tertiary: #1a1a18;
+  --border-em:           rgba(255,255,255,0.22);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ============================================================
+   Base element styling (kept from the original, layered on top
+   of Tailwind preflight)
+   ============================================================ */
+html {
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family:      var(--font-sans);
+  font-size:        14px;
+  line-height:      1.6;
+  /* page surface uses the warm tertiary, not the card-white --background */
+  background-color: var(--background-tertiary);
+  min-height:       100vh;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-em); border-radius: 10px; }
+
+/* Inputs / buttons inherit the brand font */
+input, textarea, select, button { font-family: var(--font-sans); }
+
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp {
+  from { transform: translateY(6px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+/* Utility */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}

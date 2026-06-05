@@ -1,0 +1,1000 @@
+
+<style>
+  :root {
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+    --accent-dark: #085041;
+    --accent-mid: #0F6E56;
+    --border: 0.5px solid var(--color-border-tertiary);
+    --border-em: 0.5px solid var(--color-border-secondary);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+
+  .prd-wrap { max-width: 100%; padding: 0 0 2rem; }
+
+  .prd-hero {
+    padding: 2rem 1.5rem 1.5rem;
+    border-bottom: var(--border);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .prd-tag {
+    font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent-mid); background: var(--accent-light);
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px; width: fit-content;
+  }
+  .prd-hero h1 { font-size: 22px; font-weight: 500; color: var(--color-text-primary); margin-top: 8px; }
+  .prd-hero p { font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; max-width: 580px; }
+
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+  }
+  .meta-pill {
+    font-size: 12px; color: var(--color-text-secondary);
+    background: var(--color-background-secondary);
+    border: var(--border);
+    padding: 4px 10px; border-radius: 20px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .meta-pill i { font-size: 13px; }
+
+  .nav-tabs {
+    display: flex; gap: 0; border-bottom: var(--border);
+    overflow-x: auto; padding: 0 1.5rem;
+  }
+  .nav-tab {
+    padding: 12px 14px; font-size: 13px; font-weight: 400;
+    color: var(--color-text-secondary); border-bottom: 2px solid transparent;
+    cursor: pointer; white-space: nowrap; transition: color .15s;
+    background: none; border-top: none; border-left: none; border-right: none;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .nav-tab:hover { color: var(--color-text-primary); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+  .nav-tab i { font-size: 14px; }
+
+  .section { display: none; padding: 1.5rem; }
+  .section.active { display: block; }
+
+  .section-title {
+    font-size: 16px; font-weight: 500; color: var(--color-text-primary);
+    margin-bottom: 4px;
+  }
+  .section-subtitle {
+    font-size: 13px; color: var(--color-text-secondary);
+    margin-bottom: 1.5rem; line-height: 1.6;
+  }
+
+  .problem-card {
+    background: var(--color-background-secondary);
+    border: var(--border); border-left: 3px solid var(--accent);
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .problem-card strong { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .problem-card p { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; line-height: 1.5; }
+
+  .user-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .user-card {
+    border: var(--border); border-radius: var(--border-radius-lg);
+    padding: 14px 16px;
+    background: var(--color-background-primary);
+  }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500; margin-bottom: 10px;
+  }
+  .ua-admin { background: #E1F5EE; color: #0F6E56; }
+  .ua-member { background: #E6F1FB; color: #185FA5; }
+  .user-card h4 { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .user-card p { font-size: 12px; color: var(--color-text-secondary); margin-top: 3px; line-height: 1.5; }
+  .user-card ul { margin-top: 8px; padding-left: 14px; }
+  .user-card ul li { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 3px; }
+
+  .feature-group { margin-bottom: 1.5rem; }
+  .feature-group-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .feature-group-icon {
+    width: 28px; height: 28px; border-radius: var(--border-radius-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .fg-teal { background: #E1F5EE; color: #0F6E56; }
+  .fg-blue { background: #E6F1FB; color: #185FA5; }
+  .fg-amber { background: #FAEEDA; color: #854F0B; }
+  .fg-coral { background: #FAECE7; color: #993C1D; }
+  .fg-purple { background: #EEEDFE; color: #534AB7; }
+  .feature-group-header span { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+
+  .feature-list { display: flex; flex-direction: column; gap: 6px; }
+  .feature-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px; border-radius: var(--border-radius-md);
+    border: var(--border);
+    background: var(--color-background-primary);
+  }
+  .feature-item i.ti { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+  .fi-teal { color: #0F6E56; }
+  .fi-blue { color: #185FA5; }
+  .fi-amber { color: #854F0B; }
+  .fi-coral { color: #993C1D; }
+  .fi-purple { color: #534AB7; }
+  .feature-item-body { flex: 1; }
+  .feature-item-body strong { font-size: 13px; font-weight: 500; color: var(--color-text-primary); display: block; }
+  .feature-item-body p { font-size: 12px; color: var(--color-text-secondary); margin-top: 3px; line-height: 1.5; }
+  .feature-badge {
+    font-size: 11px; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; white-space: nowrap;
+  }
+  .fb-must { background: #FAECE7; color: #993C1D; }
+  .fb-should { background: #FAEEDA; color: #854F0B; }
+  .fb-could { background: #E6F1FB; color: #185FA5; }
+
+  .board-mockup {
+    border: var(--border); border-radius: var(--border-radius-lg);
+    overflow: hidden; margin-bottom: 1.5rem;
+  }
+  .board-toolbar {
+    background: var(--color-background-secondary);
+    border-bottom: var(--border);
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .board-toolbar span { font-size: 12px; color: var(--color-text-secondary); }
+  .bt-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 20px;
+    background: #E1F5EE; color: #0F6E56;
+  }
+  .board-cols { display: flex; gap: 0; overflow-x: auto; }
+  .board-col { flex: 0 0 160px; min-width: 160px; border-right: var(--border); }
+  .board-col:last-child { border-right: none; }
+  .col-header {
+    padding: 10px 10px 8px;
+    border-bottom: var(--border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .col-avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 500; flex-shrink: 0;
+  }
+  .col-header h5 { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+  .col-header p { font-size: 10px; color: var(--color-text-secondary); }
+  .col-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 140px; }
+
+  .sticky {
+    background: #FFF9C4; border: 0.5px solid #E8CF3A;
+    border-radius: 4px; padding: 7px 8px;
+    font-size: 11px; color: #4A3B00; line-height: 1.4;
+    position: relative;
+  }
+  .sticky.green { background: #E1F5EE; border-color: #5DCAA5; color: #04342C; }
+  .sticky.blue { background: #E6F1FB; border-color: #85B7EB; color: #042C53; }
+  .sticky.done {
+    background: var(--color-background-secondary);
+    border-color: var(--color-border-secondary);
+    color: var(--color-text-tertiary);
+    text-decoration: line-through;
+    opacity: .7;
+  }
+  .sticky-anon {
+    font-size: 10px; color: #8a8a60; margin-top: 5px;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .sticky.green .sticky-anon { color: #0F6E56; }
+  .sticky.blue .sticky-anon { color: #185FA5; }
+  .done-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; padding: 1px 5px; border-radius: 3px;
+    background: #E1F5EE; color: #0F6E56; margin-top: 5px;
+  }
+
+  .add-note-btn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--color-text-tertiary);
+    border: 0.5px dashed var(--color-border-secondary);
+    border-radius: 4px; padding: 6px 8px; cursor: pointer;
+    background: none; width: 100%;
+  }
+  .add-note-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .you-col .col-header { background: var(--color-background-secondary); }
+  .you-col .col-body { background: var(--color-background-tertiary); opacity: .6; }
+  .you-col .you-chip {
+    font-size: 10px; padding: 1px 6px; border-radius: 20px;
+    background: var(--color-background-secondary); color: var(--color-text-tertiary);
+    border: var(--border);
+  }
+  .lock-msg {
+    font-size: 11px; color: var(--color-text-tertiary); text-align: center;
+    margin: 1rem auto; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .lock-msg i { font-size: 18px; color: var(--color-border-secondary); }
+
+  .flow-wrap { display: flex; flex-direction: column; gap: 0; margin-bottom: 1.5rem; }
+  .flow-step {
+    display: flex; gap: 14px; position: relative;
+  }
+  .flow-line-wrap {
+    display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 28px;
+  }
+  .flow-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-light); color: var(--accent-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 500; flex-shrink: 0;
+    border: 2px solid var(--accent);
+    z-index: 1;
+  }
+  .flow-connector {
+    width: 1px; background: var(--color-border-secondary);
+    flex: 1; min-height: 20px;
+  }
+  .flow-content { padding: 0 0 1.25rem; flex: 1; }
+  .flow-content h4 { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 3px; margin-top: 5px; }
+  .flow-content p { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric-card {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md); padding: 14px;
+  }
+  .metric-card .m-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 6px; }
+  .metric-card .m-value { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+  .metric-card .m-desc { font-size: 11px; color: var(--color-text-tertiary); margin-top: 4px; }
+
+  .chart-bar-wrap { display: flex; flex-direction: column; gap: 7px; margin-bottom: 1.5rem; }
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-label { font-size: 12px; color: var(--color-text-secondary); width: 80px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 8px; background: var(--color-background-secondary); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+  .bar-pct { font-size: 12px; color: var(--color-text-secondary); width: 35px; text-align: right; flex-shrink: 0; }
+
+  .phase-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 1.5rem; }
+  .phase-table th {
+    text-align: left; font-weight: 500; font-size: 12px;
+    color: var(--color-text-secondary); padding: 6px 10px;
+    border-bottom: var(--border); background: var(--color-background-secondary);
+  }
+  .phase-table td {
+    padding: 8px 10px; border-bottom: var(--border);
+    vertical-align: top; color: var(--color-text-primary);
+  }
+  .phase-table tr:last-child td { border-bottom: none; }
+  .phase-chip {
+    display: inline-flex; align-items: center;
+    font-size: 11px; padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+  }
+  .pc-1 { background: #E6F1FB; color: #185FA5; }
+  .pc-2 { background: #E1F5EE; color: #0F6E56; }
+  .pc-3 { background: #FAEEDA; color: #854F0B; }
+  .pc-4 { background: #EEEDFE; color: #534AB7; }
+  .phase-table td:last-child { font-size: 12px; color: var(--color-text-secondary); }
+
+  .divider { border: none; border-top: var(--border); margin: 1.25rem 0; }
+
+  .principle-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 12px; border-radius: var(--border-radius-md);
+    border: var(--border); margin-bottom: 8px;
+  }
+  .principle-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .principle-body strong { font-size: 13px; font-weight: 500; color: var(--color-text-primary); display: block; }
+  .principle-body p { font-size: 12px; color: var(--color-text-secondary); margin-top: 3px; line-height: 1.5; }
+
+  .nfr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+  .nfr-item { border: var(--border); border-radius: var(--border-radius-md); padding: 12px; }
+  .nfr-item h5 { font-size: 12px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .nfr-item h5 i { font-size: 14px; color: var(--accent); }
+  .nfr-item ul { padding-left: 14px; }
+  .nfr-item ul li { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 3px; }
+</style>
+
+<h2 class="sr-only">Product Requirements Document — TeamPulse anonymous team feedback platform</h2>
+
+<div class="prd-wrap">
+  <div class="prd-hero">
+    <div class="prd-tag"><i class="ti ti-file-description" aria-hidden="true"></i> Product Requirements Document</div>
+    <h1>TeamPulse — Collaborative anonymous team feedback platform</h1>
+    <p>A kanban-style board where team members leave anonymous sticky-note feedback on each other, track completion, and surface growth metrics over time.</p>
+    <div class="meta-row">
+      <div class="meta-pill"><i class="ti ti-calendar" aria-hidden="true"></i> v1.0 · June 2026</div>
+      <div class="meta-pill"><i class="ti ti-users" aria-hidden="true"></i> Internal Teams</div>
+      <div class="meta-pill"><i class="ti ti-flag" aria-hidden="true"></i> Status: Draft</div>
+      <div class="meta-pill"><i class="ti ti-device-desktop" aria-hidden="true"></i> Web App</div>
+    </div>
+  </div>
+
+  <div class="nav-tabs" role="tablist">
+    <button class="nav-tab active" role="tab" aria-selected="true" onclick="switchTab('overview', this)"><i class="ti ti-layout-list" aria-hidden="true"></i> Overview</button>
+    <button class="nav-tab" role="tab" onclick="switchTab('features', this)"><i class="ti ti-list-check" aria-hidden="true"></i> Features</button>
+    <button class="nav-tab" role="tab" onclick="switchTab('board', this)"><i class="ti ti-layout-kanban" aria-hidden="true"></i> Board UI</button>
+    <button class="nav-tab" role="tab" onclick="switchTab('userflows', this)"><i class="ti ti-route" aria-hidden="true"></i> User flows</button>
+    <button class="nav-tab" role="tab" onclick="switchTab('metrics', this)"><i class="ti ti-chart-bar" aria-hidden="true"></i> Metrics</button>
+    <button class="nav-tab" role="tab" onclick="switchTab('roadmap', this)"><i class="ti ti-road" aria-hidden="true"></i> Roadmap</button>
+    <button class="nav-tab" role="tab" onclick="switchTab('nfr', this)"><i class="ti ti-shield-check" aria-hidden="true"></i> Non-functional</button>
+  </div>
+
+  <div id="tab-overview" class="section active">
+    <p class="section-title">Problem statement</p>
+    <p class="section-subtitle">Most teams lack a lightweight, safe channel for continuous peer feedback. Annual reviews are infrequent; verbal feedback is inconsistent; named feedback creates social friction.</p>
+
+    <div class="problem-card">
+      <strong>Feedback is rare and high-stakes</strong>
+      <p>Without a low-friction channel, feedback only surfaces at formal reviews — too late to course-correct and too formal to be candid.</p>
+    </div>
+    <div class="problem-card">
+      <strong>Social fear suppresses honest input</strong>
+      <p>Members holding back concerns because they fear damaging relationships. Anonymity removes that barrier and raises the quality of input.</p>
+    </div>
+    <div class="problem-card">
+      <strong>No visibility into team growth over time</strong>
+      <p>Feedback happens but is never aggregated. Teams can't spot recurring themes, track improvement, or measure engagement with feedback received.</p>
+    </div>
+
+    <hr class="divider">
+    <p class="section-title">Target users</p>
+    <p class="section-subtitle">Two primary roles with distinct needs.</p>
+    <div class="user-grid">
+      <div class="user-card">
+        <div class="user-avatar ua-admin">AD</div>
+        <h4>Admin / Team lead</h4>
+        <p>Sets up teams, manages membership, views aggregate metrics, and configures feedback cycles.</p>
+        <ul>
+          <li>Create and name teams</li>
+          <li>Add / remove members</li>
+          <li>View all feedback in aggregate</li>
+          <li>Export reports</li>
+        </ul>
+      </div>
+      <div class="user-card">
+        <div class="user-avatar ua-member">TM</div>
+        <h4>Team member</h4>
+        <p>Gives anonymous feedback to colleagues, receives feedback on their own column, marks notes as actioned.</p>
+        <ul>
+          <li>Write feedback on others</li>
+          <li>View feedback received</li>
+          <li>Mark notes as done</li>
+          <li>See own growth metrics</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <p class="section-title">Core design principles</p>
+    <div class="principle-row">
+      <i class="ti ti-eye-off principle-icon" style="color:#534AB7" aria-hidden="true"></i>
+      <div class="principle-body">
+        <strong>Anonymity first</strong>
+        <p>The identity of a feedback author is never exposed to the recipient — not in the UI, not in metadata, not inferred by timing. Anonymity is enforced server-side, not just hidden in the UI.</p>
+      </div>
+    </div>
+    <div class="principle-row">
+      <i class="ti ti-hand principle-icon" style="color:#1D9E75" aria-hidden="true"></i>
+      <div class="principle-body">
+        <strong>Tactile and spatial</strong>
+        <p>Sticky notes as the primary metaphor — draggable, colour-coded, with a physical "done" state. The board should feel alive, not like a form.</p>
+      </div>
+    </div>
+    <div class="principle-row">
+      <i class="ti ti-chart-dots principle-icon" style="color:#185FA5" aria-hidden="true"></i>
+      <div class="principle-body">
+        <strong>Data as a growth tool</strong>
+        <p>Aggregate patterns surface themes across the team. Members own their own data and use it for self-improvement, not performance management.</p>
+      </div>
+    </div>
+    <div class="principle-row">
+      <i class="ti ti-lock principle-icon" style="color:#854F0B" aria-hidden="true"></i>
+      <div class="principle-body">
+        <strong>You cannot review yourself</strong>
+        <p>A user's own column is read-only to them. They can see feedback received but cannot add notes to their own column under any circumstance.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-features" class="section">
+    <p class="section-title">Feature catalogue</p>
+    <p class="section-subtitle">Organised by module. Priority uses the MoSCoW framework — must have, should have, could have.</p>
+
+    <div class="feature-group">
+      <div class="feature-group-header">
+        <div class="feature-group-icon fg-teal"><i class="ti ti-users" aria-hidden="true"></i></div>
+        <span>Auth & team management</span>
+      </div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <i class="ti ti-login fi-teal" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>User authentication</strong>
+            <p>Email/password login and magic-link passwordless auth. Session persistence with JWT. Role flag at account level: admin or member.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-users-group fi-teal" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Team creation by admin</strong>
+            <p>Admin creates a named team (e.g., "Frontend team"). Teams are isolated — feedback is scoped within a team and not visible across teams.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-user-plus fi-teal" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Member assignment</strong>
+            <p>Admin assigns registered users to a team. A user may belong to multiple teams. Removing a member hides their column from active view but preserves historical data.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-mail fi-teal" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Invite by email</strong>
+            <p>Admin sends an invite link to a new user. On accepting, they are auto-assigned to the team. Invite expires after 7 days.</p>
+          </div>
+          <span class="feature-badge fb-should">Should</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-group">
+      <div class="feature-group-header">
+        <div class="feature-group-icon fg-blue"><i class="ti ti-layout-kanban" aria-hidden="true"></i></div>
+        <span>Feedback board</span>
+      </div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <i class="ti ti-columns fi-blue" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Kanban columns per member</strong>
+            <p>Each team member gets a named column. Columns show member name and avatar (initials). Columns are horizontally scrollable on the board.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-note fi-blue" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Anonymous sticky note creation</strong>
+            <p>Any member can click "+ Add feedback" on another member's column. Note is stored with author ID server-side but displayed without any authorship indication to the recipient. Colour-coded by type: yellow = general, green = strength, blue = growth area.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-arrows-move fi-blue" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Draggable notes</strong>
+            <p>Notes within a column can be repositioned vertically via drag-and-drop. Supports reordering by priority or category. Uses dnd-kit or native HTML drag API.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-checkbox fi-blue" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Mark note as done</strong>
+            <p>The recipient can mark any note on their own column as "done". Done notes collapse visually with a strikethrough and a green completion chip. They can be expanded to review later.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-lock fi-blue" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Self-column write lock</strong>
+            <p>The add-note action is disabled on the logged-in user's own column. The column header shows a "Your column" chip and the input area is visually locked.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-edit fi-blue" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Edit / delete own notes</strong>
+            <p>The author can edit or delete their own submitted notes (within a grace period, e.g., 30 minutes). After the grace period, notes are locked.</p>
+          </div>
+          <span class="feature-badge fb-should">Should</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-tag fi-blue" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Note tagging</strong>
+            <p>Notes can be tagged with predefined labels: Communication, Technical, Collaboration, Leadership, Delivery. Tags are visible to everyone and drive the metrics module.</p>
+          </div>
+          <span class="feature-badge fb-should">Should</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-thumb-up fi-blue" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Reactions on notes</strong>
+            <p>Members can add emoji reactions to a note (👍 💡 ❤️). Reaction counts are visible, identities are not. Acts as lightweight signal amplification.</p>
+          </div>
+          <span class="feature-badge fb-could">Could</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-group">
+      <div class="feature-group-header">
+        <div class="feature-group-icon fg-amber"><i class="ti ti-chart-dots" aria-hidden="true"></i></div>
+        <span>Analytics & metrics</span>
+      </div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <i class="ti ti-chart-bar fi-amber" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Personal feedback dashboard</strong>
+            <p>Each member sees: notes received over time, completion rate, tag breakdown (radar/bar), and a streak counter for responding to feedback.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-users fi-amber" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Team admin analytics view</strong>
+            <p>Admin sees team-level: total notes given/received, average completion rate, most-used tags, participation rate (% of members who gave feedback this cycle).</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-clock-hour-4 fi-amber" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Feedback cycles</strong>
+            <p>Admin can open and close named feedback cycles (e.g., "Sprint 42", "Q2 Retro"). Notes belong to a cycle. Metrics are filterable by cycle.</p>
+          </div>
+          <span class="feature-badge fb-should">Should</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-file-export fi-amber" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Export to PDF / CSV</strong>
+            <p>Admin can export a team's feedback summary for a cycle as a PDF report or raw CSV. Exports never include author identity — only aggregated or anonymous note content.</p>
+          </div>
+          <span class="feature-badge fb-should">Should</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-brain fi-amber" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>AI theme summariser</strong>
+            <p>At cycle close, use Claude API to generate a thematic summary per member: "Your peers consistently highlight your communication and flag delivery timelines as a growth area." Displayed only to the member themselves.</p>
+          </div>
+          <span class="feature-badge fb-could">Could</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-group">
+      <div class="feature-group-header">
+        <div class="feature-group-icon fg-coral"><i class="ti ti-bell" aria-hidden="true"></i></div>
+        <span>Notifications</span>
+      </div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <i class="ti ti-bell fi-coral" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>In-app notifications</strong>
+            <p>Member is notified when new feedback appears on their column (never revealing author). Admin is notified when participation drops below a threshold.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-mail fi-coral" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Email digest</strong>
+            <p>Weekly or per-cycle email digest: "You received 4 new feedback notes this week. Log in to review them." No note content included in email.</p>
+          </div>
+          <span class="feature-badge fb-should">Should</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-group">
+      <div class="feature-group-header">
+        <div class="feature-group-icon fg-purple"><i class="ti ti-settings" aria-hidden="true"></i></div>
+        <span>Admin controls</span>
+      </div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <i class="ti ti-shield fi-purple" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Content moderation</strong>
+            <p>Admin can flag or remove a note reported as inappropriate without revealing the original author to anyone. A "report note" action is available to members.</p>
+          </div>
+          <span class="feature-badge fb-must">Must</span>
+        </div>
+        <div class="feature-item">
+          <i class="ti ti-adjustments fi-purple" aria-hidden="true"></i>
+          <div class="feature-item-body">
+            <strong>Workspace settings</strong>
+            <p>Configure grace period for note edits, feedback note character limit (default 400), available tags, and whether reactions are enabled.</p>
+          </div>
+          <span class="feature-badge fb-should">Should</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-board" class="section">
+    <p class="section-title">Board UI concept</p>
+    <p class="section-subtitle">Each team member gets a column. You can write on others' columns but not your own. Notes are sticky, draggable, and colour-coded by type.</p>
+
+    <div class="board-mockup">
+      <div class="board-toolbar">
+        <i class="ti ti-layout-kanban" style="font-size:14px;color:var(--color-text-secondary)" aria-hidden="true"></i>
+        <span style="font-weight:500;color:var(--color-text-primary);font-size:13px">Frontend team</span>
+        <span style="flex:1"></span>
+        <span class="bt-badge"><i class="ti ti-circle-filled" style="font-size:8px" aria-hidden="true"></i> Sprint 5 · Active</span>
+        <span style="font-size:12px;color:var(--color-text-tertiary)">4 members</span>
+      </div>
+      <div class="board-cols">
+        <div class="board-col you-col">
+          <div class="col-header">
+            <div class="col-avatar" style="background:#E6F1FB;color:#185FA5">YO</div>
+            <div>
+              <h5>You <span class="you-chip">Your column</span></h5>
+              <p>3 notes received</p>
+            </div>
+          </div>
+          <div class="col-body">
+            <div class="sticky done">
+              Your PRs are always well-described, makes reviews easy.
+              <div class="done-chip"><i class="ti ti-check" style="font-size:9px" aria-hidden="true"></i> Done</div>
+            </div>
+            <div class="sticky">
+              Would love more context in standup updates — what's blocking?
+              <div class="sticky-anon"><i class="ti ti-eye-off" style="font-size:10px" aria-hidden="true"></i> Anonymous</div>
+            </div>
+            <div class="lock-msg">
+              <i class="ti ti-lock" aria-hidden="true"></i>
+              <span>Can't add notes to own column</span>
+            </div>
+          </div>
+        </div>
+        <div class="board-col">
+          <div class="col-header">
+            <div class="col-avatar" style="background:#E1F5EE;color:#0F6E56">SR</div>
+            <div>
+              <h5>Sam R.</h5>
+              <p>2 notes</p>
+            </div>
+          </div>
+          <div class="col-body">
+            <div class="sticky green">
+              Sam's code review comments are always constructive and specific.
+              <div class="sticky-anon"><i class="ti ti-eye-off" style="font-size:10px" aria-hidden="true"></i> Anonymous</div>
+            </div>
+            <div class="sticky blue">
+              Could improve time estimates — tasks often run longer than scoped.
+              <div class="sticky-anon"><i class="ti ti-eye-off" style="font-size:10px" aria-hidden="true"></i> Anonymous</div>
+            </div>
+            <button class="add-note-btn"><i class="ti ti-plus" style="font-size:12px" aria-hidden="true"></i> Add feedback</button>
+          </div>
+        </div>
+        <div class="board-col">
+          <div class="col-header">
+            <div class="col-avatar" style="background:#FAEEDA;color:#854F0B">MK</div>
+            <div>
+              <h5>Maya K.</h5>
+              <p>1 note</p>
+            </div>
+          </div>
+          <div class="col-body">
+            <div class="sticky">
+              Great at unblocking others — always willing to pair.
+              <div class="sticky-anon"><i class="ti ti-eye-off" style="font-size:10px" aria-hidden="true"></i> Anonymous</div>
+            </div>
+            <button class="add-note-btn"><i class="ti ti-plus" style="font-size:12px" aria-hidden="true"></i> Add feedback</button>
+          </div>
+        </div>
+        <div class="board-col">
+          <div class="col-header">
+            <div class="col-avatar" style="background:#EEEDFE;color:#534AB7">DL</div>
+            <div>
+              <h5>Dev L.</h5>
+              <p>0 notes</p>
+            </div>
+          </div>
+          <div class="col-body">
+            <button class="add-note-btn"><i class="ti ti-plus" style="font-size:12px" aria-hidden="true"></i> Add feedback</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-title">Note type colour coding</p>
+    <p class="section-subtitle">Three sticky note types, visually distinct at a glance.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem">
+      <div style="border:var(--border);border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:8px">
+        <div style="width:14px;height:14px;border-radius:2px;background:#FFF9C4;border:1px solid #E8CF3A"></div>
+        <span style="font-size:12px;color:var(--color-text-primary)">Yellow — General feedback</span>
+      </div>
+      <div style="border:var(--border);border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:8px">
+        <div style="width:14px;height:14px;border-radius:2px;background:#E1F5EE;border:1px solid #5DCAA5"></div>
+        <span style="font-size:12px;color:var(--color-text-primary)">Green — Strength / keep doing</span>
+      </div>
+      <div style="border:var(--border);border-radius:var(--border-radius-md);padding:10px 14px;display:flex;align-items:center;gap:8px">
+        <div style="width:14px;height:14px;border-radius:2px;background:#E6F1FB;border:1px solid #85B7EB"></div>
+        <span style="font-size:12px;color:var(--color-text-primary)">Blue — Growth / improvement area</span>
+      </div>
+    </div>
+
+    <p class="section-title">Anonymity enforcement</p>
+    <p class="section-subtitle">Anonymity is enforced at multiple layers — not just visually hidden.</p>
+    <div class="feature-item" style="margin-bottom:8px">
+      <i class="ti ti-database fi-teal" aria-hidden="true"></i>
+      <div class="feature-item-body"><strong>Server-side author storage only</strong><p>The author's user ID is stored in the database but never included in the API response payload for the note endpoint. The recipient's client never receives this field.</p></div>
+    </div>
+    <div class="feature-item" style="margin-bottom:8px">
+      <i class="ti ti-clock fi-blue" aria-hidden="true"></i>
+      <div class="feature-item-body"><strong>Timing obfuscation</strong><p>Note created_at timestamps are rounded to the nearest hour in the recipient's view, preventing identification by timing patterns.</p></div>
+    </div>
+    <div class="feature-item" style="margin-bottom:8px">
+      <i class="ti ti-chart-bar fi-amber" aria-hidden="true"></i>
+      <div class="feature-item-body"><strong>Minimum note threshold for analytics</strong><p>Tag/theme breakdowns in analytics are only shown if at least 3 notes exist, preventing a single author from being inferred through process of elimination.</p></div>
+    </div>
+  </div>
+
+  <div id="tab-userflows" class="section">
+    <p class="section-title">Key user flows</p>
+    <p class="section-subtitle">Step-by-step paths for the two most important journeys in the product.</p>
+
+    <div style="margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+        <div style="background:#E1F5EE;color:#0F6E56;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500">Flow A — Admin sets up a team</div>
+      </div>
+      <div class="flow-wrap">
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">1</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Admin signs in</h4><p>Authenticates with email/password or magic link. Directed to the admin dashboard.</p></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">2</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Creates a team</h4><p>Clicks "+ New team", enters a team name (e.g., "Frontend team"), and saves. A new board is provisioned immediately.</p></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">3</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Assigns members</h4><p>Searches registered users by name/email and adds them. Optionally invites new users via email. Each added member gets a column on the board.</p></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">4</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Opens a feedback cycle</h4><p>Names the cycle (e.g., "Sprint 5"), sets optional start/end dates, and activates it. Members are notified in-app and by email digest.</p></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">5</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Shares board link</h4><p>Admin copies a shareable board link for the team to bookmark. Members log in and land directly on the team board.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+        <div style="background:#E6F1FB;color:#185FA5;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500">Flow B — Member gives and actions feedback</div>
+      </div>
+      <div class="flow-wrap">
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">1</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Member opens the team board</h4><p>Sees all team members as columns. Their own column is visually distinct (locked for writing). Others' columns have "+ Add feedback" buttons.</p></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">2</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Writes a note on a colleague's column</h4><p>Clicks "+ Add feedback" on Sam's column. A modal opens: selects note type (yellow/green/blue), adds optional tags, writes the note (max 400 chars), and submits. No name is requested or shown.</p></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">3</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Recipient views their column</h4><p>The note appears on Sam's column showing content, type colour, and tags — but zero authorship indication. Sam sees "Anonymous" where an author would normally appear.</p></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">4</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Sam actions the note</h4><p>Sam reads the feedback, takes action in their work, and clicks the checkmark to mark the note as "Done". The note collapses with a green completion chip. The board updates in real time for all members.</p></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line-wrap"><div class="flow-dot">5</div><div class="flow-connector"></div></div>
+          <div class="flow-content"><h4>Metrics reflect the action</h4><p>Sam's completion rate increases on their dashboard. The team admin sees participation metrics update. At cycle close, aggregate tag data becomes available.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-metrics" class="section">
+    <p class="section-title">Analytics & metrics module</p>
+    <p class="section-subtitle">Data surfaces team health, individual growth patterns, and engagement with feedback — without ever exposing individual authorship.</p>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="m-label">Notes given (cycle)</div>
+        <div class="m-value">47</div>
+        <div class="m-desc">Across 4 members</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Completion rate</div>
+        <div class="m-value">74%</div>
+        <div class="m-desc">Notes marked done</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Participation</div>
+        <div class="m-value">100%</div>
+        <div class="m-desc">All members gave feedback</div>
+      </div>
+      <div class="metric-card">
+        <div class="m-label">Avg. response time</div>
+        <div class="m-value">1.4d</div>
+        <div class="m-desc">Feedback to "done" action</div>
+      </div>
+    </div>
+
+    <p class="section-title" style="margin-bottom:6px">Tag distribution (team)</p>
+    <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:1rem">Most frequent feedback categories across all notes this cycle.</p>
+    <div class="chart-bar-wrap">
+      <div class="bar-row"><span class="bar-label">Collaboration</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><span class="bar-pct">82%</span></div>
+      <div class="bar-row"><span class="bar-label">Technical</span><div class="bar-track"><div class="bar-fill" style="width:61%"></div></div><span class="bar-pct">61%</span></div>
+      <div class="bar-row"><span class="bar-label">Communication</span><div class="bar-track"><div class="bar-fill" style="width:55%"></div></div><span class="bar-pct">55%</span></div>
+      <div class="bar-row"><span class="bar-label">Delivery</span><div class="bar-track"><div class="bar-fill" style="width:38%"></div></div><span class="bar-pct">38%</span></div>
+      <div class="bar-row"><span class="bar-label">Leadership</span><div class="bar-track"><div class="bar-fill" style="width:22%"></div></div><span class="bar-pct">22%</span></div>
+    </div>
+
+    <hr class="divider">
+    <p class="section-title">Member analytics view (personal)</p>
+    <p class="section-subtitle">What each member sees on their own dashboard — growth-oriented, never punitive.</p>
+    <div class="feature-list">
+      <div class="feature-item">
+        <i class="ti ti-trending-up fi-teal" aria-hidden="true"></i>
+        <div class="feature-item-body"><strong>Notes received over time</strong><p>Line chart: notes received per cycle, showing engagement trend. Helps members understand if they're becoming more visible and valuable to the team.</p></div>
+      </div>
+      <div class="feature-item">
+        <i class="ti ti-radar fi-blue" aria-hidden="true"></i>
+        <div class="feature-item-body"><strong>Strength radar chart</strong><p>Radar/spider chart across all 5 tag categories, showing where the member consistently receives positive (green) vs growth-area (blue) notes.</p></div>
+      </div>
+      <div class="feature-item">
+        <i class="ti ti-flame fi-amber" aria-hidden="true"></i>
+        <div class="feature-item-body"><strong>Action streak</strong><p>Gamified streak counter: consecutive cycles where the member marked all received notes as done. Encourages follow-through on feedback.</p></div>
+      </div>
+      <div class="feature-item">
+        <i class="ti ti-brain fi-purple" aria-hidden="true"></i>
+        <div class="feature-item-body"><strong>AI summary (v2)</strong><p>Claude-generated 3-sentence plain-language summary of the member's feedback patterns at cycle close. Private to the member only.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-roadmap" class="section">
+    <p class="section-title">Delivery roadmap</p>
+    <p class="section-subtitle">Four phases from MVP to full analytics. Each phase ships independently.</p>
+
+    <table class="phase-table">
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Scope</th>
+          <th>Target</th>
+          <th>Success metric</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="phase-chip pc-1">Phase 1 · MVP</span></td>
+          <td style="font-size:12px">Auth, team creation, member assignment, kanban board, anonymous sticky notes, self-column lock, mark-done, in-app notifications</td>
+          <td><span class="phase-chip pc-1">Month 1</span></td>
+          <td>First internal team using the board daily</td>
+        </tr>
+        <tr>
+          <td><span class="phase-chip pc-2">Phase 2 · Feedback quality</span></td>
+          <td style="font-size:12px">Note type colours, tag system, drag-and-drop reorder, edit/delete grace period, email invite, email digest, content reporting</td>
+          <td><span class="phase-chip pc-2">Month 2</span></td>
+          <td>&gt;80% of notes have a tag; 0 unresolved content reports</td>
+        </tr>
+        <tr>
+          <td><span class="phase-chip pc-3">Phase 3 · Analytics</span></td>
+          <td style="font-size:12px">Personal dashboard, team admin view, feedback cycles, participation metrics, export to PDF/CSV, streak counter</td>
+          <td><span class="phase-chip pc-3">Month 3</span></td>
+          <td>Admin runs at least one cycle export per team per month</td>
+        </tr>
+        <tr>
+          <td><span class="phase-chip pc-4">Phase 4 · Intelligence</span></td>
+          <td style="font-size:12px">AI theme summariser, reaction system, anonymous 1-to-1 reply threads, Slack/Teams notification integration</td>
+          <td><span class="phase-chip pc-4">Month 4+</span></td>
+          <td>Members rate AI summary usefulness &gt;4/5</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr class="divider">
+    <p class="section-title">Out of scope (v1)</p>
+    <p class="section-subtitle">Explicitly excluded from the initial build to keep scope tight.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem">
+      <div style="font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:var(--border);padding:5px 10px;border-radius:var(--border-radius-md)">Manager-visible individual ratings</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:var(--border);padding:5px 10px;border-radius:var(--border-radius-md)">Public leaderboards</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:var(--border);padding:5px 10px;border-radius:var(--border-radius-md)">Performance scoring / ratings</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:var(--border);padding:5px 10px;border-radius:var(--border-radius-md)">HR / payroll integration</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:var(--border);padding:5px 10px;border-radius:var(--border-radius-md)">Cross-team comparisons</div>
+      <div style="font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:var(--border);padding:5px 10px;border-radius:var(--border-radius-md)">Manager-assigned mandatory feedback</div>
+    </div>
+  </div>
+
+  <div id="tab-nfr" class="section">
+    <p class="section-title">Non-functional requirements</p>
+    <p class="section-subtitle">Quality constraints that cut across all features.</p>
+
+    <div class="nfr-grid">
+      <div class="nfr-item">
+        <h5><i class="ti ti-shield-lock" aria-hidden="true"></i> Security & privacy</h5>
+        <ul>
+          <li>Author ID never in API response</li>
+          <li>RLS: members only see own team data</li>
+          <li>HTTPS enforced everywhere</li>
+          <li>JWT expiry: 7 days / 30 days remember-me</li>
+          <li>Audit log for admin actions</li>
+        </ul>
+      </div>
+      <div class="nfr-item">
+        <h5><i class="ti ti-bolt" aria-hidden="true"></i> Performance</h5>
+        <ul>
+          <li>Board load &lt;1.5s for teams up to 20 members</li>
+          <li>Note submission &lt;300ms perceived</li>
+          <li>Real-time board updates via WebSocket</li>
+          <li>Optimistic UI for drag-and-drop</li>
+        </ul>
+      </div>
+      <div class="nfr-item">
+        <h5><i class="ti ti-device-mobile" aria-hidden="true"></i> Responsiveness</h5>
+        <ul>
+          <li>Board is horizontally scrollable on mobile</li>
+          <li>Note writing modal is mobile-optimised</li>
+          <li>Dashboard charts resize to container</li>
+          <li>Touch drag-and-drop supported</li>
+        </ul>
+      </div>
+      <div class="nfr-item">
+        <h5><i class="ti ti-accessible" aria-hidden="true"></i> Accessibility</h5>
+        <ul>
+          <li>WCAG 2.1 AA for all interactive elements</li>
+          <li>Keyboard navigable board and notes</li>
+          <li>Screen reader announcements on note add</li>
+          <li>Colour not the only differentiator for note types</li>
+        </ul>
+      </div>
+      <div class="nfr-item">
+        <h5><i class="ti ti-server" aria-hidden="true"></i> Stack alignment</h5>
+        <ul>
+          <li>Next.js frontend (Vercel deploy)</li>
+          <li>Supabase (PostgreSQL + RLS + Auth)</li>
+          <li>shadcn/ui components</li>
+          <li>dnd-kit for drag-and-drop</li>
+          <li>Supabase Realtime for live updates</li>
+        </ul>
+      </div>
+      <div class="nfr-item">
+        <h5><i class="ti ti-scale" aria-hidden="true"></i> Data & retention</h5>
+        <ul>
+          <li>Notes retained indefinitely by default</li>
+          <li>Admin can archive closed cycles</li>
+          <li>GDPR: member data deletion on request</li>
+          <li>No third-party analytics SDKs in v1</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <p class="section-title" style="margin-bottom:1rem">Open questions for next review</p>
+    <div class="feature-list">
+      <div class="feature-item">
+        <i class="ti ti-question-mark fi-amber" aria-hidden="true"></i>
+        <div class="feature-item-body"><strong>Should admins be able to see individual note authors?</strong><p>There's a case for this in content moderation. However it risks a chilling effect on honest feedback. Recommend: admin can see author only after a formal report is filed, with a confirmation step.</p></div>
+      </div>
+      <div class="feature-item">
+        <i class="ti ti-question-mark fi-amber" aria-hidden="true"></i>
+        <div class="feature-item-body"><strong>Minimum team size for anonymity?</strong><p>On a team of 2, any note is de-facto attributable. Should there be a minimum of 4 members before the feedback board activates?</p></div>
+      </div>
+      <div class="feature-item">
+        <i class="ti ti-question-mark fi-amber" aria-hidden="true"></i>
+        <div class="feature-item-body"><strong>Can members give feedback outside active cycles?</strong><p>Always-on vs cycle-gated feedback both have merits. Always-on is more useful; cycles drive participation spikes. Propose always-on with optional cycles layered on top.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
