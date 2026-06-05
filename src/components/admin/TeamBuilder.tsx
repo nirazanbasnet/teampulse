@@ -5,15 +5,16 @@ import { useState, useTransition } from 'react'
 import { useRouter }   from 'next/navigation'
 import { Avatar }      from '@/components/shared/Avatar'
 import { createTeam, deleteTeam, addTeamMember, removeTeamMember, inviteMember } from '@/server/actions/teams'
-import type { Team, WorkspaceMember } from '@/lib/types'
+import type { Team } from '@/lib/types'
 
 interface TeamBuilderProps {
-  workspaceId:      string
-  teams:            (Team & { team_members: any[] })[]
-  workspaceMembers: (WorkspaceMember & { profile: any })[]
+  workspaceId: string
+  teams:       (Team & { team_members: any[] })[]
+  /** Every registered user — adding one to a team also adds them to the workspace. */
+  candidates:  { profile_id: string; profile: any }[]
 }
 
-export function TeamBuilder({ workspaceId, teams, workspaceMembers }: TeamBuilderProps) {
+export function TeamBuilder({ workspaceId, teams, candidates }: TeamBuilderProps) {
   const [selectedTeam,    setSelectedTeam]    = useState<string | null>(teams[0]?.id ?? null)
   const [creating,        setCreating]        = useState(false)
   const [newTeamName,     setNewTeamName]      = useState('')
@@ -97,7 +98,7 @@ export function TeamBuilder({ workspaceId, teams, workspaceMembers }: TeamBuilde
 
   const currentMembers   = activeTeam?.team_members ?? []
   const currentMemberIds = new Set(currentMembers.map((m: any) => m.profile_id))
-  const addableMembers   = workspaceMembers.filter(m => !currentMemberIds.has(m.profile_id))
+  const addableMembers   = candidates.filter(m => !currentMemberIds.has(m.profile_id))
 
   return (
     <div>
@@ -250,11 +251,11 @@ export function TeamBuilder({ workspaceId, teams, workspaceMembers }: TeamBuilde
             </div>
           </div>
 
-          {/* Add from workspace */}
+          {/* Add any registered user (also grants workspace membership) */}
           {addableMembers.length > 0 && (
             <div className="border border-border rounded-[12px] overflow-hidden">
               <div className="px-[14px] py-[10px] border-b border-border bg-muted text-[12px] font-medium text-muted-foreground">
-                Add workspace members
+                Add members
               </div>
               {addableMembers.map(m => (
                 <div key={m.profile_id} className="flex items-center gap-[10px] px-[14px] py-[9px] border-b border-border">

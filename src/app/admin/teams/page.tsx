@@ -38,11 +38,13 @@ export default async function AdminTeamsPage() {
     .eq('workspace_id', workspace.id)
     .order('created_at', { ascending: true })
 
-  // Load all workspace members (potential team members)
-  const { data: workspaceMembers } = await supabase
-    .from('workspace_members')
-    .select('profile_id, role, profiles!workspace_members_profile_id_fkey(id, full_name, email, avatar_url)')
-    .eq('workspace_id', workspace.id)
+  // Candidate pool = every registered user. Adding one to a team also makes
+  // them a workspace member (see addTeamMember), so there's no separate
+  // "add to workspace" step. RLS lets any authenticated user read profiles.
+  const { data: allProfiles } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, avatar_url')
+    .order('full_name', { ascending: true })
 
   return (
     <div className="mx-auto max-w-[800px] px-4 py-6">
@@ -56,9 +58,9 @@ export default async function AdminTeamsPage() {
       <TeamBuilder
         workspaceId={workspace.id}
         teams={teams ?? []}
-        workspaceMembers={(workspaceMembers ?? []).map((m: any) => ({
-          ...m,
-          profile: m.profiles,
+        candidates={(allProfiles ?? []).map((p: any) => ({
+          profile_id: p.id,
+          profile:    p,
         }))}
       />
     </div>

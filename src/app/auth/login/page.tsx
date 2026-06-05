@@ -16,8 +16,25 @@ export default function LoginPage() {
   const [message,   setMessage]   = useState('')
   const [error,     setError]     = useState('')
   const [isPending, startTransition] = useTransition()
+  const [googleLoading, setGoogleLoading] = useState(false)
   const router  = useRouter()
   const supabase = createBrowserClient()
+
+  async function handleGoogle() {
+    setError('')
+    setGoogleLoading(true)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    // On success the browser is redirected to Google, so we only reach here on error.
+    if (error) {
+      setError(error.message)
+      setGoogleLoading(false)
+    }
+  }
 
   function handleSubmit() {
     if (!email.trim() || !password.trim()) return
@@ -60,6 +77,24 @@ export default function LoginPage() {
         <p className="mb-5 text-[13px] text-muted-foreground">
           Give and receive anonymous feedback with your team.
         </p>
+
+        {/* Google OAuth */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleGoogle}
+          disabled={googleLoading || isPending}
+          className="mb-4 w-full"
+        >
+          <i className="ti ti-brand-google text-base" aria-hidden="true" />
+          {googleLoading ? 'Redirecting…' : 'Continue with Google'}
+        </Button>
+
+        <div className="mb-4 flex items-center gap-3">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">or</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
 
         {/* Mode toggle */}
         <div className="mb-4 flex overflow-hidden rounded-lg border border-border">

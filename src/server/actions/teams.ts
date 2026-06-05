@@ -57,11 +57,33 @@ export async function addTeamMember({ teamId, profileId }: { teamId: string; pro
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { error } = await supabase.from('team_members').insert({
-    team_id:    teamId,
-    profile_id: profileId,
-    added_by:   user.id,
-  })
+  // The team's workspace — needed so we can also grant workspace membership.
+  const { data: team } = await supabase
+    .from('teams')
+    .select('workspace_id')
+    .eq('id', teamId)
+    .single()
+
+  if (!team) throw new Error('Team not found.')
+
+  // A person must be a workspace member to satisfy RLS on teams/notes (i.e.
+  // to actually see the board). Adding them to a team implies workspace
+  // membership, so ensure it exists first. No-op if they're already a member.
+  const { error: wsError } = await supabase
+    .from('workspace_members')
+    .upsert(
+      { workspace_id: team.workspace_id, profile_id: profileId, role: 'member', invited_by: user.id },
+      { onConflict: 'workspace_id,profile_id', ignoreDuplicates: true },
+    )
+
+  if (wsError) throw new Error(`Failed to add to workspace: ${wsError.message}`)
+
+  const { error } = await supabase
+    .from('team_members')
+    .upsert(
+      { team_id: teamId, profile_id: profileId, added_by: user.id },
+      { onConflict: 'team_id,profile_id', ignoreDuplicates: true },
+    )
 
   if (error) throw new Error(`Failed to add member: ${error.message}`)
   revalidatePath('/admin/teams')
