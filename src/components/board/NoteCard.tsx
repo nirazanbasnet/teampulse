@@ -34,6 +34,10 @@ interface NoteCardProps {
   isDragging?:   boolean
   /** Priority rank (1-based) — shown only in the Priorities lane. */
   rank?:         number
+  /** Optimistic priority toggle owned by BoardView (moves the note + persists). */
+  onSetPriority?: (noteId: string, priority: boolean) => void
+  /** True while BoardView is persisting this note's priority change. */
+  saving?:       boolean
 }
 
 function formatNoteDate(iso: string): string {
@@ -63,7 +67,7 @@ function renderEvidence(text: string) {
   )
 }
 
-export function NoteCard({ note, currentUserId, isDragging = false, rank }: NoteCardProps) {
+export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetPriority, saving = false }: NoteCardProps) {
   const [showReport,  setShowReport]  = useState(false)
   const [reportText,  setReportText]  = useState('')
   const [isPending, startTransition]  = useTransition()
@@ -125,6 +129,11 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank }: Note
   }
 
   function handleTogglePriority() {
+    // Prefer BoardView's optimistic handler (moves the note + shows a spinner).
+    if (onSetPriority) {
+      onSetPriority(note.id, !note.priority)
+      return
+    }
     startTransition(async () => {
       await setNotePriority(note.id, !note.priority)
     })
@@ -229,9 +238,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank }: Note
           {typeof rank === 'number' && (
             <span className="font-medium not-italic">#{rank}</span>
           )}
-          <i className="ti ti-eye-off text-[10px]" aria-hidden="true" />
-          anon
-          {dateLabel && <span className="opacity-70">· {dateLabel}</span>}
+          {dateLabel && <span className="opacity-70">{dateLabel}</span>}
         </span>
 
         {/* Actions */}
@@ -258,11 +265,12 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank }: Note
 
           {note.can_mark_done && !note.done && (
             <ActionBtn
-              icon={note.priority ? 'ti-star-filled' : 'ti-star'}
+              icon={saving ? 'ti-loader-2' : (note.priority ? 'ti-star-filled' : 'ti-star')}
               label={note.priority ? 'Remove from priorities' : 'Set as objective'}
               color="#B45309"
               onClick={handleTogglePriority}
-              disabled={isPending}
+              disabled={isPending || saving}
+              spin={saving}
             />
           )}
           {note.can_mark_done && !note.done && (
@@ -407,9 +415,9 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank }: Note
 }
 
 function ActionBtn({
-  icon, label, color, onClick, disabled,
+  icon, label, color, onClick, disabled, spin,
 }: {
-  icon: string; label: string; color: string; onClick: () => void; disabled?: boolean
+  icon: string; label: string; color: string; onClick: () => void; disabled?: boolean; spin?: boolean
 }) {
   return (
     <button
@@ -419,13 +427,13 @@ function ActionBtn({
       title={label}
       className={cn(
         'w-[20px] h-[20px] rounded-[4px] border-0 bg-transparent flex items-center justify-center text-[12px] p-0 transition-opacity duration-150',
-        disabled ? 'cursor-not-allowed opacity-30' : 'cursor-pointer opacity-50',
+        spin ? 'opacity-100 cursor-default' : disabled ? 'cursor-not-allowed opacity-30' : 'cursor-pointer opacity-50',
       )}
       style={{ color }}
-      onMouseEnter={e => { if (!disabled) e.currentTarget.style.opacity = '1' }}
-      onMouseLeave={e => { if (!disabled) e.currentTarget.style.opacity = '.5' }}
+      onMouseEnter={e => { if (!disabled && !spin) e.currentTarget.style.opacity = '1' }}
+      onMouseLeave={e => { if (!disabled && !spin) e.currentTarget.style.opacity = '.5' }}
     >
-      <i className={`ti ${icon}`} aria-hidden="true" />
+      <i className={cn('ti', icon, spin && 'animate-spin')} aria-hidden="true" />
     </button>
   )
 }

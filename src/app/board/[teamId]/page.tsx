@@ -9,14 +9,16 @@
 import { notFound, redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { BoardView } from '@/components/board/BoardView'
+import { BoardWelcomeToast } from '@/components/board/BoardWelcomeToast'
 import { Topbar }    from '@/components/shared/Topbar'
 import type { BoardState } from '@/lib/types'
 
 interface BoardPageProps {
   params: { teamId: string }
+  searchParams: { joined?: string }
 }
 
-export default async function BoardPage({ params }: BoardPageProps) {
+export default async function BoardPage({ params, searchParams }: BoardPageProps) {
   const supabase = createServerClient()
 
   // Auth check
@@ -147,6 +149,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
 
   return (
     <>
+      <BoardWelcomeToast joined={searchParams?.joined === '1'} teamName={(team as any).name} />
       <Topbar
         profile={profile as any}
         team={team as any}

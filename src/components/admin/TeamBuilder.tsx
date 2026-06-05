@@ -26,6 +26,7 @@ export function TeamBuilder({
   const [creating,        setCreating]        = useState(false)
   const [newTeamName,     setNewTeamName]      = useState('')
   const [error,           setError]            = useState('')
+  const [addingId,        setAddingId]         = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
@@ -63,12 +64,15 @@ export function TeamBuilder({
   function handleAddMember(profileId: string) {
     if (!selectedTeam) return
     setError('')
+    setAddingId(profileId)
     startTransition(async () => {
       try {
         await addTeamMember({ teamId: selectedTeam, profileId })
         router.refresh()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to add member')
+      } finally {
+        setAddingId(null)
       }
     })
   }
@@ -235,7 +239,8 @@ export function TeamBuilder({
                   <button
                     onClick={() => handleRemoveMember(m.profile_id)}
                     disabled={isPending}
-                    aria-label="Remove member"
+                    aria-label="Remove from team"
+                    title="Remove from team"
                     className="w-[28px] h-[28px] rounded-[6px] border border-border bg-transparent cursor-pointer flex items-center justify-center text-[#993C1D] text-[13px] opacity-60 hover:opacity-100 transition-opacity duration-150 shrink-0"
                   >
                     <i className="ti ti-user-minus" aria-hidden="true" />
@@ -261,10 +266,20 @@ export function TeamBuilder({
                   <button
                     onClick={() => handleAddMember(m.profile_id)}
                     disabled={isPending}
-                    className="py-1 px-[10px] text-[11px] rounded-[6px] border border-border bg-transparent cursor-pointer flex items-center gap-1 text-muted-foreground"
+                    title="Add to team"
+                    className="py-1 px-[10px] text-[11px] rounded-[6px] border border-border bg-transparent cursor-pointer flex items-center gap-1 text-muted-foreground disabled:opacity-60 min-w-[64px] justify-center"
                   >
-                    <i className="ti ti-plus text-[12px]" aria-hidden="true" />
-                    Add
+                    {addingId === m.profile_id ? (
+                      <>
+                        <i className="ti ti-loader-2 text-[12px] animate-spin" aria-hidden="true" />
+                        Adding…
+                      </>
+                    ) : (
+                      <>
+                        <i className="ti ti-plus text-[12px]" aria-hidden="true" />
+                        Add
+                      </>
+                    )}
                   </button>
                 </div>
               ))}

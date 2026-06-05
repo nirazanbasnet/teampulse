@@ -54,6 +54,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
   const [columns, setColumns] = useState(boardState.columns)
   const [activeNote, setActiveNote]   = useState<NoteSafe | null>(null)
   const [addModalFor, setAddModalFor] = useState<{ recipientId: string; recipientName: string } | null>(null)
+  const [savingIds, setSavingIds]     = useState<Set<string>>(() => new Set())
   const [, startTransition] = useTransition()
 
   // ── Realtime subscription ─────────────────────────────────
@@ -117,6 +118,21 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
         ? { ...c, notes: c.notes.map(n => (n.id === id ? { ...n, ...patch } : n)) }
         : c
     ))
+  }
+
+  // Star toggle from a note: move it to / from Priorities immediately
+  // (optimistic) and show a spinner on that note until the server confirms.
+  function handleSetPriority(noteId: string, priority: boolean) {
+    const patch = priority ? { priority: true, done: false } : { priority: false }
+    patchNoteState(noteId, patch)
+    setSavingIds(prev => new Set(prev).add(noteId))
+    updateNoteState(noteId, patch).finally(() => {
+      setSavingIds(prev => {
+        const next = new Set(prev)
+        next.delete(noteId)
+        return next
+      })
+    })
   }
 
   function persistReorder(list: NoteSafe[], activeId: string, overId: string) {
@@ -211,6 +227,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
 
       <div className="px-4 py-3">
         <DndContext
+          id="teampulse-board"
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
@@ -222,7 +239,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                 it never pushes your pinned personal area off-screen. */}
             {otherColumns.length > 0 && (
               <div className="flex-1 min-w-0 overflow-x-auto pb-1">
-                <div className="flex items-stretch gap-3 min-w-max">
+                <div className="flex items-start gap-3 min-w-max">
                   {otherColumns.map(col => (
                     <BoardColumn
                       key={col.member.profile_id}
@@ -243,7 +260,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
             {/* Right region: your personal area — pinned (shrink-0) so your
                 Received / Priorities / Done lanes stay visible no matter how
                 many members there are. */}
-            <div className="shrink-0 flex items-stretch gap-3">
+            <div className="shrink-0 flex items-start gap-3">
               {otherColumns.length > 0 && (
                 <div className="w-px self-stretch bg-border" />
               )}
@@ -254,6 +271,8 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                   id={myProfileId}
                   notes={myInbox}
                   currentUserId={currentUserId}
+                  onSetPriority={handleSetPriority}
+                  savingIds={savingIds}
                   accent
                   header={
                     <div className="px-3 pt-[10px] pb-[9px] border-b border-border flex items-center gap-[9px] bg-accent/50 rounded-t-[12px]">
@@ -281,6 +300,8 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                   id={PRIORITY_ZONE_ID}
                   notes={myPriorities}
                   currentUserId={currentUserId}
+                  onSetPriority={handleSetPriority}
+                  savingIds={savingIds}
                   ranked
                   header={
                     <div className="px-3 pt-[10px] pb-[9px] border-b border-border flex items-center gap-[9px] bg-[#FAEEDA] rounded-t-[12px]">
@@ -353,7 +374,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
 // ── A droppable + sortable lane (used for your column and the Done zone) ──
 
 function DropLane({
-  id, notes, currentUserId, header, emptyHint, accent, dashed, ranked,
+  id, notes, currentUserId, header, emptyHint, accent, dashed, ranked, onSetPriority, savingIds,
 }: {
   id:            string
   notes:         NoteSafe[]
@@ -363,6 +384,8 @@ function DropLane({
   accent?:       boolean
   dashed?:       boolean
   ranked?:       boolean
+  onSetPriority?: (noteId: string, priority: boolean) => void
+  savingIds?:    Set<string>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
@@ -390,6 +413,8 @@ function DropLane({
                 note={note}
                 currentUserId={currentUserId}
                 rank={ranked ? i + 1 : undefined}
+                onSetPriority={onSetPriority}
+                saving={savingIds?.has(note.id)}
               />
             ))
           )}
