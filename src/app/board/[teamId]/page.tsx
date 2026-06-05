@@ -9,6 +9,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { BoardView } from '@/components/board/BoardView'
+import { Topbar }    from '@/components/shared/Topbar'
 import type { BoardState } from '@/lib/types'
 
 interface BoardPageProps {
@@ -32,6 +33,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
       team_members (
         id,
         profile_id,
+        role,
         added_at,
         profiles!team_members_profile_id_fkey (
           id,
@@ -52,6 +54,32 @@ export default async function BoardPage({ params }: BoardPageProps) {
   )
   if (!isMember) notFound()
 
+  // Current user's profile (for the topbar avatar/menu)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  // Is the current user an admin of this team's workspace?
+  const { data: adminRow } = await supabase
+    .from('workspace_members')
+    .select('id')
+    .eq('workspace_id', (team as any).workspace_id)
+    .eq('profile_id', user.id)
+    .eq('role', 'admin')
+    .maybeSingle()
+  const isAdmin = !!adminRow
+
+  // All teams the current user belongs to (for the team switcher)
+  const { data: myTeamRows } = await supabase
+    .from('team_members')
+    .select('teams(id, name)')
+    .eq('profile_id', user.id)
+  const userTeams = (myTeamRows ?? [])
+    .map((r: any) => r.teams)
+    .filter(Boolean) as { id: string; name: string }[]
+
   // Load active cycle (if any)
   const { data: cycle } = await supabase
     .from('feedback_cycles')
@@ -69,7 +97,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
     .eq('team_id', teamId)
     .order('position', { ascending: true })
 
-  // Load reaction counts
+  // Load reaction counts + evidence for these notes
   const noteIds = (notes ?? []).map((n: any) => n.id)
   const { data: reactions } = noteIds.length
     ? await supabase
@@ -77,11 +105,19 @@ export default async function BoardPage({ params }: BoardPageProps) {
         .select('*')
         .in('note_id', noteIds)
     : { data: [] }
+  const { data: evidence } = noteIds.length
+    ? await supabase
+        .from('note_evidence')
+        .select('*')
+        .in('note_id', noteIds)
+        .order('created_at', { ascending: true })
+    : { data: [] }
 
-  // Attach reactions to notes
+  // Attach reactions + evidence to notes
   const notesWithReactions = (notes ?? []).map((note: any) => ({
     ...note,
     reactions: (reactions ?? []).filter((r: any) => r.note_id === note.id),
+    evidence:  (evidence ?? []).filter((e: any) => e.note_id === note.id),
   }))
 
   // Build board columns per team member
@@ -110,10 +146,19 @@ export default async function BoardPage({ params }: BoardPageProps) {
   }
 
   return (
-    <BoardView
-      boardState={boardState}
-      currentUserId={user.id}
-    />
+    <>
+      <Topbar
+        profile={profile as any}
+        team={team as any}
+        cycle={cycle ?? null}
+        isAdmin={isAdmin}
+        teams={userTeams}
+      />
+      <BoardView
+        boardState={boardState}
+        currentUserId={user.id}
+      />
+    </>
   )
 }
 

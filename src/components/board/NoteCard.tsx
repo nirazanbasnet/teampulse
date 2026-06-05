@@ -4,8 +4,8 @@
 import { useState, useTransition } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS }         from '@dnd-kit/utilities'
-import { markNoteDone, deleteNote, reportNote } from '@/server/actions/notes'
-import type { NoteSafe, NoteType } from '@/lib/types'
+import { setNoteDone, setNotePriority, deleteNote, reportNote, toggleReaction, addEvidence, deleteEvidence } from '@/server/actions/notes'
+import type { NoteSafe, NoteType, NoteEvidence } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const TYPE_STYLES: Record<NoteType, { bg: string; border: string; color: string; label: string }> = {
@@ -32,12 +32,51 @@ interface NoteCardProps {
   note:          NoteSafe
   currentUserId: string
   isDragging?:   boolean
+  /** Priority rank (1-based) — shown only in the Priorities lane. */
+  rank?:         number
 }
 
-export function NoteCard({ note, currentUserId, isDragging = false }: NoteCardProps) {
+function formatNoteDate(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+// Render evidence as plain text with clickable http(s) links interleaved.
+// (split with a capturing group keeps the URLs as their own segments)
+function renderEvidence(text: string) {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline break-all"
+        onClick={e => e.stopPropagation()}
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  )
+}
+
+export function NoteCard({ note, currentUserId, isDragging = false, rank }: NoteCardProps) {
   const [showReport,  setShowReport]  = useState(false)
   const [reportText,  setReportText]  = useState('')
   const [isPending, startTransition]  = useTransition()
+
+  // ── Vote (+1) — optimistic local state from the 👍 reaction ──
+  const thumbs = note.reactions?.find(r => r.emoji === '👍')
+  const [voteCount, setVoteCount] = useState(thumbs?.count ?? 0)
+  const [voted,     setVoted]     = useState(thumbs?.reacted_by_me ?? false)
+
+  // ── Evidence — proof the recipient acted on the feedback ──
+  const [evidence,     setEvidence]     = useState<NoteEvidence[]>(note.evidence ?? [])
+  const [showEvidence, setShowEvidence] = useState(false)
+  const [evidenceText, setEvidenceText] = useState('')
 
   const {
     attributes,
@@ -48,7 +87,9 @@ export function NoteCard({ note, currentUserId, isDragging = false }: NoteCardPr
     isDragging: isSortableDragging,
   } = useSortable({
     id:       note.id,
-    disabled: note.done || (!note.is_mine && !note.can_mark_done),
+    // Only the recipient may drag — to reorder their own column or move
+    // a note into / out of the Done zone. Everyone else's notes are locked.
+    disabled: !note.can_mark_done,
   })
 
   // KEEP dnd-kit transform/transition inline — cannot be expressed as static Tailwind
@@ -64,7 +105,47 @@ export function NoteCard({ note, currentUserId, isDragging = false }: NoteCardPr
 
   function handleMarkDone() {
     startTransition(async () => {
-      await markNoteDone(note.id)
+      await setNoteDone(note.id, true)
+    })
+  }
+
+  function handleUndone() {
+    startTransition(async () => {
+      await setNoteDone(note.id, false)
+    })
+  }
+
+  function handleVote() {
+    // optimistic toggle
+    setVoted(v => !v)
+    setVoteCount(c => (voted ? c - 1 : c + 1))
+    startTransition(async () => {
+      await toggleReaction(note.id, '👍')
+    })
+  }
+
+  function handleTogglePriority() {
+    startTransition(async () => {
+      await setNotePriority(note.id, !note.priority)
+    })
+  }
+
+  const dateLabel = formatNoteDate(note.created_at)
+
+  function handleAddEvidence() {
+    const text = evidenceText.trim()
+    if (!text) return
+    setEvidenceText('')
+    startTransition(async () => {
+      const row = await addEvidence(note.id, text)
+      if (row) setEvidence(prev => [...prev, row as NoteEvidence])
+    })
+  }
+
+  function handleDeleteEvidence(id: string) {
+    setEvidence(prev => prev.filter(e => e.id !== id))
+    startTransition(async () => {
+      await deleteEvidence(id)
     })
   }
 
@@ -142,24 +223,63 @@ export function NoteCard({ note, currentUserId, isDragging = false }: NoteCardPr
       {/* Footer */}
       <div className="flex items-center justify-between mt-[4px]">
         <span className={cn(
-          'text-[10px] flex items-center gap-[3px] opacity-[.55] font-mono',
+          'text-[10px] flex items-center gap-[4px] opacity-[.6] font-mono',
           isLocked ? 'text-muted-foreground/70' : TYPE_TEXT[note.note_type],
         )}>
+          {typeof rank === 'number' && (
+            <span className="font-medium not-italic">#{rank}</span>
+          )}
           <i className="ti ti-eye-off text-[10px]" aria-hidden="true" />
           anon
+          {dateLabel && <span className="opacity-70">· {dateLabel}</span>}
         </span>
 
         {/* Actions */}
         <div
-          className="flex gap-[2px]"
+          className="flex items-center gap-[4px]"
           onPointerDown={e => e.stopPropagation()}
         >
+          {/* +1 vote — any team member can upvote common feedback */}
+          <button
+            onClick={handleVote}
+            disabled={isPending}
+            aria-label={voted ? 'Remove your vote' : 'Give +1'}
+            title={voted ? 'Remove your vote' : 'Agree (+1)'}
+            className={cn(
+              'flex items-center gap-[3px] text-[10px] px-[6px] py-[1px] rounded-[20px] border font-mono transition-colors',
+              voted
+                ? 'bg-primary/15 border-primary/40 text-primary'
+                : 'bg-black/[.05] border-transparent text-muted-foreground hover:bg-black/[.1]',
+            )}
+          >
+            <i className="ti ti-thumb-up text-[11px]" aria-hidden="true" />
+            {voteCount > 0 ? <span className="text-xs">{voteCount}</span> : null}
+          </button>
+
+          {note.can_mark_done && !note.done && (
+            <ActionBtn
+              icon={note.priority ? 'ti-star-filled' : 'ti-star'}
+              label={note.priority ? 'Remove from priorities' : 'Set as objective'}
+              color="#B45309"
+              onClick={handleTogglePriority}
+              disabled={isPending}
+            />
+          )}
           {note.can_mark_done && !note.done && (
             <ActionBtn
               icon="ti-check"
               label="Mark done"
               color="#1D9E75"
               onClick={handleMarkDone}
+              disabled={isPending}
+            />
+          )}
+          {note.can_mark_done && note.done && (
+            <ActionBtn
+              icon="ti-arrow-back-up"
+              label="Mark not done"
+              color="#185FA5"
+              onClick={handleUndone}
               disabled={isPending}
             />
           )}
@@ -184,25 +304,68 @@ export function NoteCard({ note, currentUserId, isDragging = false }: NoteCardPr
         </div>
       </div>
 
-      {/* Reactions */}
-      {note.reactions && note.reactions.length > 0 && (
+      {/* Evidence — recipient documents how they acted on the feedback */}
+      {(evidence.length > 0 || note.can_mark_done) && (
         <div
-          className="flex gap-[4px] mt-[5px] flex-wrap"
+          className="mt-[6px] pt-[6px] border-t border-black/[.07]"
           onPointerDown={e => e.stopPropagation()}
         >
-          {note.reactions.map(r => (
-            <span
-              key={r.emoji}
-              className={cn(
-                'text-[11px] px-[6px] py-[1px] rounded-[20px] cursor-pointer',
-                r.reacted_by_me
-                  ? 'bg-black/[.12] border border-[rgba(0,0,0,.2)]'
-                  : 'bg-black/[.05] border border-transparent',
+          <button
+            onClick={() => setShowEvidence(v => !v)}
+            className={cn(
+              'flex items-center gap-[4px] text-[10px] font-mono opacity-70 hover:opacity-100',
+              isLocked ? 'text-muted-foreground/70' : TYPE_TEXT[note.note_type],
+            )}
+          >
+            <i className="ti ti-paperclip text-[11px]" aria-hidden="true" />
+            Evidence{evidence.length > 0 ? ` (${evidence.length})` : ''}
+            <i className={cn('ti text-[11px]', showEvidence ? 'ti-chevron-up' : 'ti-chevron-down')} aria-hidden="true" />
+          </button>
+
+          {showEvidence && (
+            <div className="mt-[5px] flex flex-col gap-[4px]">
+              {evidence.map(ev => (
+                <div key={ev.id} className="flex items-start gap-[5px] bg-black/[.04] rounded-[4px] px-[6px] py-[4px]">
+                  <i className="ti ti-circle-check text-[11px] text-[#0F6E56] mt-[1px] shrink-0" aria-hidden="true" />
+                  <span className="flex-1 text-[11px] text-foreground/80 break-words whitespace-pre-wrap">{renderEvidence(ev.content)}</span>
+                  <span className="text-[9px] text-muted-foreground/70 font-mono shrink-0">{formatNoteDate(ev.created_at)}</span>
+                  {note.can_mark_done && (
+                    <button
+                      onClick={() => handleDeleteEvidence(ev.id)}
+                      aria-label="Delete evidence"
+                      className="text-[#993C1D] opacity-50 hover:opacity-100 text-[11px] shrink-0"
+                    >
+                      <i className="ti ti-x" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {evidence.length === 0 && (
+                <p className="text-[10px] text-muted-foreground m-0">No evidence yet — add proof you acted on this.</p>
               )}
-            >
-              {r.emoji} {r.count}
-            </span>
-          ))}
+              {note.can_mark_done && (
+                <div className="flex gap-[4px] mt-[2px]">
+                  <input
+                    value={evidenceText}
+                    onChange={e => setEvidenceText(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddEvidence()}
+                    placeholder="Add evidence or a link…"
+                    className="flex-1 text-[11px] px-[6px] py-[4px] border border-border rounded-[4px] bg-background text-foreground"
+                  />
+                  <button
+                    onClick={handleAddEvidence}
+                    disabled={!evidenceText.trim() || isPending}
+                    className={cn(
+                      'text-[11px] px-[8px] rounded-[4px] bg-primary text-white',
+                      (!evidenceText.trim() || isPending) && 'opacity-50 cursor-not-allowed',
+                    )}
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -255,7 +418,7 @@ function ActionBtn({
       aria-label={label}
       title={label}
       className={cn(
-        'w-[20px] h-[20px] rounded-[4px] border-0 bg-transparent flex items-center justify-center text-[12px] p-0 transition-opacity duration-[150ms]',
+        'w-[20px] h-[20px] rounded-[4px] border-0 bg-transparent flex items-center justify-center text-[12px] p-0 transition-opacity duration-150',
         disabled ? 'cursor-not-allowed opacity-30' : 'cursor-pointer opacity-50',
       )}
       style={{ color }}

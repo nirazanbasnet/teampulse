@@ -86,6 +86,7 @@ export function AddNoteModal({
           position:      999,
           done:          false,
           done_at:       null,
+          priority:      false,
           created_at:    new Date().toISOString(),
           updated_at:    new Date().toISOString(),
           is_mine:       true,

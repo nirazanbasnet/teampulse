@@ -2,6 +2,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createServerClient }  from '@/lib/supabase/server'
 import { AnalyticsDashboard }  from '@/components/analytics/AnalyticsDashboard'
+import { Topbar }             from '@/components/shared/Topbar'
 import type { NoteTag, NoteType, TeamAnalytics } from '@/lib/types'
 
 interface AnalyticsPageProps {
@@ -117,16 +118,35 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
     // In practice check workspace_members role too
   )
 
+  // Topbar data: profile + teams the user belongs to
+  const { data: profile } = await supabase
+    .from('profiles').select('*').eq('id', user.id).single()
+  const { data: myTeamRows } = await supabase
+    .from('team_members').select('teams(id, name)').eq('profile_id', user.id)
+  const userTeams = (myTeamRows ?? [])
+    .map((r: any) => r.teams)
+    .filter(Boolean) as { id: string; name: string }[]
+  const activeCycle = (cycles ?? []).find((c: any) => c.status === 'active') ?? null
+
   return (
-    <AnalyticsDashboard
-      team={team as any}
-      cycles={cycles ?? []}
-      activeCycleId={activeCycleId ?? null}
-      analytics={analytics}
-      currentUserId={user.id}
-      personalSummary={summary?.summary_text ?? null}
-      isAdmin={isAdmin}
-    />
+    <>
+      <Topbar
+        profile={profile as any}
+        team={team as any}
+        cycle={activeCycle as any}
+        isAdmin={isAdmin}
+        teams={userTeams}
+      />
+      <AnalyticsDashboard
+        team={team as any}
+        cycles={cycles ?? []}
+        activeCycleId={activeCycleId ?? null}
+        analytics={analytics}
+        currentUserId={user.id}
+        personalSummary={summary?.summary_text ?? null}
+        isAdmin={isAdmin}
+      />
+    </>
   )
 }
 

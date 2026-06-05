@@ -12,6 +12,7 @@
 export type NoteType    = 'general' | 'strength' | 'growth'
 export type NoteTag     = 'Communication' | 'Technical' | 'Collaboration' | 'Leadership' | 'Delivery'
 export type UserRole    = 'admin' | 'member'
+export type TeamRole    = 'lead' | 'member'
 export type CycleStatus = 'active' | 'closed' | 'archived'
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'removed'
 export type NoteEmoji   = '👍' | '💡' | '❤️'
@@ -71,6 +72,7 @@ export interface TeamMember {
   id:         string
   team_id:    string
   profile_id: string
+  role:       TeamRole
   added_by:   string | null
   added_at:   string
   // Joined
@@ -109,6 +111,7 @@ export interface NoteRow {
   position:            number
   done:                boolean
   done_at:             string | null
+  priority:            boolean
   created_at:          string
   created_at_display:  string
   updated_at:          string
@@ -126,6 +129,7 @@ export interface NoteSafe {
   position:      number
   done:          boolean
   done_at:       string | null
+  priority:      boolean         // recipient promoted to their Priorities lane
   created_at:    string          // hour-rounded
   updated_at:    string
   // Computed booleans from the view
@@ -134,6 +138,19 @@ export interface NoteSafe {
   can_edit:      boolean         // author + within grace period
   // Client-joined
   reactions?:    ReactionCount[]
+  evidence?:     NoteEvidence[]
+}
+
+// ── Evidence ──────────────────────────────────────────────────
+// Added by the note's recipient as proof they acted on the feedback.
+// Authored openly (the recipient) — never the anonymous note author.
+
+export interface NoteEvidence {
+  id:         string
+  note_id:    string
+  author_id:  string
+  content:    string
+  created_at: string
 }
 
 export interface NoteAdmin extends NoteRow {

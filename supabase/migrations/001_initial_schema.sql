@@ -138,6 +138,9 @@ create table public.notes (
   done         boolean not null default false,
   done_at      timestamptz,
 
+  -- Recipient promotes feedback into their ranked "Priorities" lane.
+  priority     boolean not null default false,
+
   created_at   timestamptz not null default now(),
 
   -- Hour-rounded (truncated) for display to non-authors.

@@ -18,7 +18,11 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
   const { member, notes, isMyColumn } = column
   const profile = member.profile
 
-  const { setNodeRef, isOver } = useDroppable({ id: member.profile_id })
+  // Other members' columns are read-only: you write feedback via the
+  // "+ Add feedback" button, never by dragging. Disabling the droppable
+  // removes them as drop targets so a dragged note can't be placed (or
+  // even appear placeable) on someone else's column.
+  const { setNodeRef, isOver } = useDroppable({ id: member.profile_id, disabled: true })
 
   const doneCount  = notes.filter(n => n.done).length
   const totalCount = notes.length
@@ -49,6 +53,11 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
             {isMyColumn && (
               <span className="text-[10px] px-[6px] py-[1px] rounded-[20px] bg-secondary text-muted-foreground/70 border border-border shrink-0">
                 You
+              </span>
+            )}
+            {(member as any).role === 'lead' && (
+              <span className="text-[10px] px-[6px] py-[1px] rounded-[20px] bg-[#FAEEDA] text-[#854F0B] border border-[#F5E0B8] shrink-0">
+                Lead
               </span>
             )}
           </div>

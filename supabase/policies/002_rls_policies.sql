@@ -284,7 +284,8 @@ select
     when n.author_id = auth.uid() and n.done = false then
       n.created_at > now() - interval '30 minutes'
     else false
-  end as can_edit
+  end as can_edit,
+  n.priority
 from public.notes n
 where public.is_team_member(n.team_id);
 

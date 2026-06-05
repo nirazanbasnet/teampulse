@@ -90,6 +90,25 @@ export async function addTeamMember({ teamId, profileId }: { teamId: string; pro
   return { success: true }
 }
 
+export async function setTeamRole(
+  { teamId, profileId, role }: { teamId: string; profileId: string; role: 'lead' | 'member' },
+) {
+  const supabase = createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  // RLS: only a workspace admin or a lead of this team may update.
+  const { error } = await supabase
+    .from('team_members')
+    .update({ role })
+    .eq('team_id', teamId)
+    .eq('profile_id', profileId)
+
+  if (error) throw new Error(`Failed to update role: ${error.message}`)
+  revalidatePath('/admin/teams')
+  return { success: true }
+}
+
 export async function removeTeamMember({ teamId, profileId }: { teamId: string; profileId: string }) {
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -104,34 +123,4 @@ export async function removeTeamMember({ teamId, profileId }: { teamId: string; 
   if (error) throw new Error(`Failed to remove member: ${error.message}`)
   revalidatePath('/admin/teams')
   return { success: true }
-}
-
-export async function inviteMember({
-  workspaceId, teamId, email,
-}: {
-  workspaceId: string; teamId: string; email: string
-}) {
-  const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data: invite, error } = await supabase
-    .from('invites')
-    .insert({
-      workspace_id: workspaceId,
-      team_id:      teamId,
-      email:        email.toLowerCase().trim(),
-      invited_by:   user.id,
-    })
-    .select('token')
-    .single()
-
-  if (error) throw new Error(`Failed to create invite: ${error.message}`)
-
-  // In production: send email via Resend/SendGrid with invite link
-  // For now: console.log the link for development
-  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/accept-invite?token=${invite.token}`
-  console.log('[TeamPulse] Invite link:', inviteUrl)
-
-  return { success: true, inviteUrl }
 }

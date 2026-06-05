@@ -78,20 +78,133 @@ export async function createNote(input: CreateNoteInput) {
 // ── Mark note done ────────────────────────────────────────────
 
 export async function markNoteDone(noteId: string) {
+  return setNoteDone(noteId, true)
+}
+
+// ── Set note done state (both directions — used by the Done zone) ──
+// Only the recipient may change the done state of a note on their own
+// column (enforced by the explicit guard + the RLS update policy).
+
+export async function setNoteDone(noteId: string, done: boolean) {
   const supabase = createServerClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  // RLS enforces recipient_id = auth.uid() for this update
   const { error } = await supabase
     .from('notes')
-    .update({ done: true })
+    .update({ done })
     .eq('id', noteId)
-    .eq('recipient_id', user.id)   // explicit guard
-    .eq('done', false)              // idempotency
+    .eq('recipient_id', user.id)   // explicit guard: recipients only
 
-  if (error) throw new Error(`Failed to mark done: ${error.message}`)
+  if (error) throw new Error(`Failed to update note: ${error.message}`)
+
+  return { success: true }
+}
+
+// ── Set note priority (promote/demote to the Priorities lane) ──
+
+export async function setNotePriority(noteId: string, priority: boolean) {
+  return updateNoteState(noteId, { priority })
+}
+
+// ── Update done / priority together (lane transitions) ────────
+// Only the recipient may move their own received feedback between the
+// Inbox / Priorities / Done lanes (guard + RLS both enforce recipient_id).
+
+export async function updateNoteState(
+  noteId: string,
+  patch: { done?: boolean; priority?: boolean },
+) {
+  const supabase = createServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const update: { done?: boolean; priority?: boolean } = {}
+  if (patch.done !== undefined)     update.done = patch.done
+  if (patch.priority !== undefined) update.priority = patch.priority
+  if (Object.keys(update).length === 0) return { success: true }
+
+  const { error } = await supabase
+    .from('notes')
+    .update(update)
+    .eq('id', noteId)
+    .eq('recipient_id', user.id)
+
+  if (error) throw new Error(`Failed to update note: ${error.message}`)
+
+  return { success: true }
+}
+
+// ── Evidence (recipient documents how they acted on feedback) ──
+
+export async function addEvidence(noteId: string, content: string) {
+  const supabase = createServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const trimmed = content.trim()
+  if (!trimmed) throw new Error('Evidence cannot be empty.')
+
+  const { data, error } = await supabase
+    .from('note_evidence')
+    .insert({ note_id: noteId, author_id: user.id, content: trimmed })
+    .select('*')
+    .single()
+
+  // RLS only permits the recipient of the note to insert.
+  if (error) throw new Error(`Failed to add evidence: ${error.message}`)
+
+  return data
+}
+
+export async function deleteEvidence(evidenceId: string) {
+  const supabase = createServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { error } = await supabase
+    .from('note_evidence')
+    .delete()
+    .eq('id', evidenceId)   // RLS enforces author_id = auth.uid()
+
+  if (error) throw new Error(`Failed to delete evidence: ${error.message}`)
+
+  return { success: true }
+}
+
+// ── Toggle a reaction (the "+1" vote) ─────────────────────────
+// Any team member can react. Adding the same emoji again removes it
+// (toggle). reactor_id is never exposed — only aggregate counts are.
+
+export async function toggleReaction(noteId: string, emoji: string = '👍') {
+  const supabase = createServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: existing } = await supabase
+    .from('note_reactions')
+    .select('id')
+    .eq('note_id', noteId)
+    .eq('reactor_id', user.id)
+    .eq('emoji', emoji)
+    .maybeSingle()
+
+  if (existing) {
+    const { error } = await supabase.from('note_reactions').delete().eq('id', existing.id)
+    if (error) throw new Error(`Failed to remove reaction: ${error.message}`)
+  } else {
+    const { error } = await supabase.from('note_reactions').insert({
+      note_id:    noteId,
+      reactor_id: user.id,
+      emoji,
+    })
+    if (error) throw new Error(`Failed to react: ${error.message}`)
+  }
 
   return { success: true }
 }

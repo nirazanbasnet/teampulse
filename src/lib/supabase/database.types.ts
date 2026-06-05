@@ -21,6 +21,7 @@ export type Json =
 type NoteType = 'general' | 'strength' | 'growth'
 type NoteTag = 'Communication' | 'Technical' | 'Collaboration' | 'Leadership' | 'Delivery'
 type UserRole = 'admin' | 'member'
+type TeamRole = 'lead' | 'member'
 type CycleStatus = 'active' | 'closed' | 'archived'
 type ReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'removed'
 
@@ -161,6 +162,7 @@ export interface Database {
           id: string
           team_id: string
           profile_id: string
+          role: TeamRole
           added_by: string | null
           added_at: string
         }
@@ -168,6 +170,7 @@ export interface Database {
           id?: string
           team_id: string
           profile_id: string
+          role?: TeamRole
           added_by?: string | null
           added_at?: string
         }
@@ -175,6 +178,7 @@ export interface Database {
           id?: string
           team_id?: string
           profile_id?: string
+          role?: TeamRole
           added_by?: string | null
           added_at?: string
         }
@@ -269,6 +273,7 @@ export interface Database {
           position: number
           done: boolean
           done_at: string | null
+          priority: boolean
           created_at: string
           created_at_display: string
           updated_at: string
@@ -285,6 +290,7 @@ export interface Database {
           position?: number
           done?: boolean
           done_at?: string | null
+          priority?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -300,6 +306,7 @@ export interface Database {
           position?: number
           done?: boolean
           done_at?: string | null
+          priority?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -393,6 +400,30 @@ export interface Database {
             referencedColumns: ['id']
           },
         ]
+      }
+      note_evidence: {
+        Row: {
+          id: string
+          note_id: string
+          author_id: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          note_id: string
+          author_id: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          note_id?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+        }
+        Relationships: []
       }
       cycle_summaries: {
         Row: {
@@ -512,6 +543,7 @@ export interface Database {
           is_mine: boolean
           can_mark_done: boolean
           can_edit: boolean
+          priority: boolean
         }
         Relationships: []
       }
@@ -528,6 +560,7 @@ export interface Database {
           position: number
           done: boolean
           done_at: string | null
+          priority: boolean
           created_at: string
           created_at_display: string
           updated_at: string
@@ -565,6 +598,7 @@ export interface Database {
       note_type: NoteType
       note_tag: NoteTag
       user_role: UserRole
+      team_role: TeamRole
       cycle_status: CycleStatus
       report_status: ReportStatus
     }

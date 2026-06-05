@@ -4,7 +4,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter }   from 'next/navigation'
 import { Avatar }      from '@/components/shared/Avatar'
-import { createTeam, deleteTeam, addTeamMember, removeTeamMember, inviteMember } from '@/server/actions/teams'
+import { createTeam, deleteTeam, addTeamMember, removeTeamMember, setTeamRole } from '@/server/actions/teams'
 import type { Team } from '@/lib/types'
 
 interface TeamBuilderProps {
@@ -12,14 +12,19 @@ interface TeamBuilderProps {
   teams:       (Team & { team_members: any[] })[]
   /** Every registered user — adding one to a team also adds them to the workspace. */
   candidates:  { profile_id: string; profile: any }[]
+  /** Only workspace admins create / delete teams; leads just manage membership. */
+  canCreateTeams?:  boolean
+  /** profile_ids that are workspace admins — drives the "Admin" badge. */
+  adminProfileIds?: string[]
 }
 
-export function TeamBuilder({ workspaceId, teams, candidates }: TeamBuilderProps) {
+export function TeamBuilder({
+  workspaceId, teams, candidates, canCreateTeams = false, adminProfileIds = [],
+}: TeamBuilderProps) {
+  const adminIds = new Set(adminProfileIds)
   const [selectedTeam,    setSelectedTeam]    = useState<string | null>(teams[0]?.id ?? null)
   const [creating,        setCreating]        = useState(false)
   const [newTeamName,     setNewTeamName]      = useState('')
-  const [inviteEmail,     setInviteEmail]      = useState('')
-  const [inviteOpen,      setInviteOpen]       = useState(false)
   const [error,           setError]            = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -68,6 +73,19 @@ export function TeamBuilder({ workspaceId, teams, candidates }: TeamBuilderProps
     })
   }
 
+  function handleSetRole(profileId: string, role: 'lead' | 'member') {
+    if (!selectedTeam) return
+    setError('')
+    startTransition(async () => {
+      try {
+        await setTeamRole({ teamId: selectedTeam, profileId, role })
+        router.refresh()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to update role')
+      }
+    })
+  }
+
   function handleRemoveMember(profileId: string) {
     if (!selectedTeam) return
     setError('')
@@ -77,21 +95,6 @@ export function TeamBuilder({ workspaceId, teams, candidates }: TeamBuilderProps
         router.refresh()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to remove member')
-      }
-    })
-  }
-
-  function handleInvite() {
-    if (!inviteEmail.trim() || !selectedTeam) return
-    setError('')
-    startTransition(async () => {
-      try {
-        await inviteMember({ workspaceId, teamId: selectedTeam, email: inviteEmail.trim() })
-        setInviteEmail('')
-        setInviteOpen(false)
-        router.refresh()
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to send invite')
       }
     })
   }
@@ -114,16 +117,18 @@ export function TeamBuilder({ workspaceId, teams, candidates }: TeamBuilderProps
 
       {/* Teams sidebar */}
       <div>
-        <div className="border border-border rounded-[12px] overflow-hidden">
+        <div className="border border-border rounded-[12px] overflow-hidden bg-white">
           <div className="px-3 py-[10px] border-b border-border bg-muted text-[12px] font-medium text-muted-foreground flex items-center justify-between">
             Teams
-            <button
-              onClick={() => setCreating(v => !v)}
-              className="w-5 h-5 rounded-[4px] border-none bg-transparent cursor-pointer text-muted-foreground flex items-center justify-center text-[14px]"
-              aria-label="New team"
-            >
-              <i className="ti ti-plus" aria-hidden="true" />
-            </button>
+            {canCreateTeams && (
+              <button
+                onClick={() => setCreating(v => !v)}
+                className="w-5 h-5 rounded-[4px] border-none bg-transparent cursor-pointer text-muted-foreground flex items-center justify-center text-[14px]"
+                aria-label="New team"
+              >
+                <i className="ti ti-plus" aria-hidden="true" />
+              </button>
+            )}
           </div>
 
           {creating && (
@@ -182,14 +187,7 @@ export function TeamBuilder({ workspaceId, teams, candidates }: TeamBuilderProps
                   {currentMembers.length} member{currentMembers.length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <div className="flex gap-[6px]">
-                <button
-                  onClick={() => setInviteOpen(v => !v)}
-                  className="py-[5px] px-[10px] text-[12px] rounded-[8px] border border-border bg-transparent cursor-pointer flex items-center gap-[5px] text-muted-foreground"
-                >
-                  <i className="ti ti-mail text-[13px]" aria-hidden="true" />
-                  Invite
-                </button>
+              {canCreateTeams && (
                 <button
                   onClick={() => handleDeleteTeam(activeTeam.id, activeTeam.name)}
                   disabled={isPending}
@@ -198,56 +196,52 @@ export function TeamBuilder({ workspaceId, teams, candidates }: TeamBuilderProps
                   <i className="ti ti-trash text-[13px]" aria-hidden="true" />
                   Delete
                 </button>
-              </div>
+              )}
             </div>
 
-            {inviteOpen && (
-              <div className="p-3 border-b border-border bg-accent">
-                <p className="text-[12px] text-accent-foreground m-0 mb-2 font-medium">
-                  Invite by email
-                </p>
-                <div className="flex gap-[6px]">
-                  <input
-                    type="email"
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                    placeholder="colleague@company.com"
-                    className="flex-1 text-[12px] py-[6px] px-[10px] border border-[#5DCAA5] rounded-[6px] bg-white text-foreground"
-                  />
-                  <button onClick={handleInvite} disabled={!inviteEmail.trim() || isPending} className="py-[5px] px-[10px] text-[12px] rounded-[6px] border-none bg-primary text-white cursor-pointer font-medium">
-                    Send invite
-                  </button>
-                  <button onClick={() => setInviteOpen(false)} className="py-[5px] px-[10px] text-[12px] rounded-[6px] border border-border bg-transparent cursor-pointer text-muted-foreground">Cancel</button>
-                </div>
-                <p className="text-[11px] text-accent-foreground m-0 mt-[6px]">
-                  Invite link expires in 7 days.
-                </p>
-              </div>
-            )}
-
             {/* Current members */}
-            <div>
-              {currentMembers.map((m: any) => (
+            <div className="bg-white">
+              {currentMembers.map((m: any) => {
+                const memberIsAdmin = adminIds.has(m.profile_id)
+                const memberIsLead  = m.role === 'lead'
+                return (
                 <div key={m.profile_id} className="flex items-center gap-[10px] px-[14px] py-[10px] border-b border-border">
                   <Avatar name={m.profiles?.full_name ?? m.profile_id} size={30} />
-                  <div className="flex-1">
-                    <div className="text-[13px] text-foreground">
-                      {m.profiles?.full_name ?? m.profile_id}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-[6px]">
+                      <span className="text-[13px] text-foreground truncate">
+                        {m.profiles?.full_name ?? m.profile_id}
+                      </span>
+                      {memberIsAdmin ? (
+                        <span className="text-[10px] px-[6px] py-[1px] rounded-[20px] bg-[#EEEDFE] text-[#534AB7] border border-[#D8D5F5] shrink-0">Admin</span>
+                      ) : memberIsLead ? (
+                        <span className="text-[10px] px-[6px] py-[1px] rounded-[20px] bg-[#FAEEDA] text-[#854F0B] border border-[#F5E0B8] shrink-0">Lead</span>
+                      ) : (
+                        <span className="text-[10px] px-[6px] py-[1px] rounded-[20px] bg-muted text-muted-foreground border border-border shrink-0">Member</span>
+                      )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-[11px] text-muted-foreground truncate">
                       {m.profiles?.email}
                     </div>
                   </div>
                   <button
+                    onClick={() => handleSetRole(m.profile_id, memberIsLead ? 'member' : 'lead')}
+                    disabled={isPending}
+                    title={memberIsLead ? 'Demote to member' : 'Promote to team lead'}
+                    className="py-[4px] px-[8px] text-[11px] rounded-[6px] border border-border bg-transparent cursor-pointer text-muted-foreground hover:text-foreground whitespace-nowrap"
+                  >
+                    {memberIsLead ? 'Make member' : 'Make lead'}
+                  </button>
+                  <button
                     onClick={() => handleRemoveMember(m.profile_id)}
                     disabled={isPending}
                     aria-label="Remove member"
-                    className="w-[28px] h-[28px] rounded-[6px] border border-border bg-transparent cursor-pointer flex items-center justify-center text-[#993C1D] text-[13px] opacity-60 hover:opacity-100 transition-opacity duration-[150ms]"
+                    className="w-[28px] h-[28px] rounded-[6px] border border-border bg-transparent cursor-pointer flex items-center justify-center text-[#993C1D] text-[13px] opacity-60 hover:opacity-100 transition-opacity duration-150 shrink-0"
                   >
                     <i className="ti ti-user-minus" aria-hidden="true" />
                   </button>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
 
