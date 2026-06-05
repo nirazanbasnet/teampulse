@@ -3,6 +3,7 @@ import Link                  from 'next/link'
 import { redirect }          from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { Button }            from '@/components/ui/button'
+import { SignOutButton }     from '@/components/shared/SignOutButton'
 
 export default async function HomePage() {
   const supabase = createServerClient()
@@ -73,9 +74,13 @@ export default async function HomePage() {
           </>
         ) : (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Ask your workspace admin to add you to a team, or accept a pending invite.
+            Ask your workspace admin or a team lead to add you to a team.
           </p>
         )}
+
+        <div className="mt-6 border-t border-border pt-4">
+          <SignOutButton />
+        </div>
       </div>
     </div>
   )
