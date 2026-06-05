@@ -129,7 +129,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
   const activeCycle = (cycles ?? []).find((c: any) => c.status === 'active') ?? null
 
   return (
-    <>
+    <div>
       <Topbar
         profile={profile as any}
         team={team as any}
@@ -146,7 +146,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
         personalSummary={summary?.summary_text ?? null}
         isAdmin={isAdmin}
       />
-    </>
+    </div>
   )
 }
 

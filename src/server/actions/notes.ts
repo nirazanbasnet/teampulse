@@ -12,6 +12,7 @@
 import { revalidatePath } from 'next/cache'
 import { createServerClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { moderateFeedback } from '@/lib/ai/moderate'
 import type { CreateNoteInput, NoteTag, NoteType, UpdateNotePositionInput } from '@/lib/types'
 
 // ── Create note ───────────────────────────────────────────────
@@ -51,6 +52,18 @@ export async function createNote(input: CreateNoteInput) {
     throw new Error('Recipient is not a member of this team.')
   }
 
+  const content = input.content.trim()
+
+  // AI moderation gate — block clearly inappropriate content; borderline
+  // content is allowed but auto-flagged into the admin moderation queue.
+  const moderation = await moderateFeedback(content)
+  if (moderation.decision === 'block') {
+    throw new Error(
+      `This feedback can't be posted${moderation.reason ? `: ${moderation.reason}` : ''}. ` +
+      `Please keep feedback respectful and work-related.`,
+    )
+  }
+
   // Determine current position (append to end of recipient's column)
   const { count } = await supabase
     .from('notes')
@@ -58,18 +71,33 @@ export async function createNote(input: CreateNoteInput) {
     .eq('team_id', input.team_id)
     .eq('recipient_id', input.recipient_id)
 
-  const { error } = await supabase.from('notes').insert({
+  const { data: inserted, error } = await supabase.from('notes').insert({
     team_id:      input.team_id,
     cycle_id:     input.cycle_id ?? null,
     recipient_id: input.recipient_id,
     author_id:    user.id,         // stored server-side only
     note_type:    input.note_type,
-    content:      input.content.trim(),
+    content,
     tags:         input.tags,
     position:     count ?? 0,
-  })
+  }).select('id').single()
 
   if (error) throw new Error(`Failed to create note: ${error.message}`)
+
+  // Borderline content → auto-flag for admin review (best-effort).
+  if (moderation.decision === 'flag' && inserted) {
+    try {
+      const service = createServiceClient()
+      await service.from('content_reports').insert({
+        note_id:     inserted.id,
+        reporter_id: null,
+        source:      'ai',
+        reason:      `AI flagged (${moderation.category})${moderation.reason ? `: ${moderation.reason}` : ''}`,
+      })
+    } catch (flagErr) {
+      console.error('[moderation] failed to auto-flag note:', flagErr)
+    }
+  }
 
   revalidatePath(`/board/${input.team_id}`)
   return { success: true }
@@ -357,4 +385,68 @@ export async function moderateNote(
   })
 
   return { success: true }
+}
+
+// ── Admin: reveal the anonymous author of a REPORTED note ─────
+// Author identity is never exposed by default. A workspace admin may
+// unmask the author only via this explicit action, which is recorded
+// in the audit log. (Reveal-on-report policy.)
+
+export async function revealNoteAuthor(reportId: string) {
+  const serviceClient = createServiceClient()
+  const supabase      = createServerClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: report } = await serviceClient
+    .from('content_reports')
+    .select('id, note_id')
+    .eq('id', reportId)
+    .single()
+  if (!report) throw new Error('Report not found.')
+
+  // Resolve the note's workspace and verify the caller is an admin of it.
+  const { data: note } = await serviceClient
+    .from('notes')
+    .select('team_id')
+    .eq('id', report.note_id)
+    .single()
+  if (!note) throw new Error('Note no longer exists.')
+
+  const { data: team } = await serviceClient
+    .from('teams')
+    .select('workspace_id')
+    .eq('id', note.team_id)
+    .single()
+  if (!team) throw new Error('Team not found.')
+
+  const { data: adminRow } = await serviceClient
+    .from('workspace_members')
+    .select('id')
+    .eq('workspace_id', team.workspace_id)
+    .eq('profile_id', user.id)
+    .eq('role', 'admin')
+    .maybeSingle()
+  if (!adminRow) throw new Error('Admin access required.')
+
+  // Fetch the author identity (admin-only view).
+  const { data: admin } = await serviceClient
+    .from('notes_admin')
+    .select('author_name, author_email')
+    .eq('id', report.note_id)
+    .single()
+  if (!admin) throw new Error('Author could not be resolved.')
+
+  // Record the reveal — this is an audited, accountable action.
+  await serviceClient.from('audit_log').insert({
+    workspace_id: team.workspace_id,
+    actor_id:     user.id,
+    action:       'author_revealed',
+    target_table: 'notes',
+    target_id:    report.note_id,
+    metadata:     { report_id: reportId },
+  })
+
+  return { author_name: admin.author_name as string, author_email: admin.author_email as string }
 }

@@ -260,11 +260,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
             {/* Right region: your personal area — pinned (shrink-0) so your
                 Received / Priorities / Done lanes stay visible no matter how
                 many members there are. */}
-            <div className="shrink-0 flex items-start gap-3">
-              {otherColumns.length > 0 && (
-                <div className="w-px self-stretch bg-border" />
-              )}
-
+            <div className="shrink-0 flex items-start gap-3 p-4 rounded-lg bg-[#e8e6dc]">
               {/* Inbox — received feedback. Star or drag into Priorities. */}
               {myColumn && myProfileId && (
                 <DropLane

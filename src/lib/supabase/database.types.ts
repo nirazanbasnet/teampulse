@@ -340,9 +340,10 @@ export interface Database {
         Row: {
           id: string
           note_id: string
-          reporter_id: string
+          reporter_id: string | null
           reason: string
           status: ReportStatus
+          source: string
           reviewed_by: string | null
           reviewed_at: string | null
           admin_note: string | null
@@ -351,9 +352,10 @@ export interface Database {
         Insert: {
           id?: string
           note_id: string
-          reporter_id: string
+          reporter_id?: string | null
           reason: string
           status?: ReportStatus
+          source?: string
           reviewed_by?: string | null
           reviewed_at?: string | null
           admin_note?: string | null
@@ -362,9 +364,10 @@ export interface Database {
         Update: {
           id?: string
           note_id?: string
-          reporter_id?: string
+          reporter_id?: string | null
           reason?: string
           status?: ReportStatus
+          source?: string
           reviewed_by?: string | null
           reviewed_at?: string | null
           admin_note?: string | null

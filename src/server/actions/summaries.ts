@@ -4,7 +4,7 @@
 //
 // Triggered when an admin closes a feedback cycle.
 // Generates a private per-member plain-language summary
-// using Claude. Uses service role to access full note data.
+// using the Groq API. Uses service role to access full note data.
 //
 // The summary is:
 //   - Generated server-side only (API key never exposed)
@@ -14,13 +14,15 @@
 
 'use server'
 
-import Anthropic from '@anthropic-ai/sdk'
+import Groq from 'groq-sdk'
 import { createServerClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { NoteTag, NoteType } from '@/lib/types'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY!,
 })
 
 // ── Close cycle and generate all member summaries ────────────
@@ -99,7 +101,7 @@ export async function closeCycleAndGenerateSummaries(cycleId: string) {
           cycle_id:     cycleId,
           profile_id:   recipientId,
           summary_text: summaryText,
-          model_used:   'claude-sonnet-4-20250514',
+          model_used:   GROQ_MODEL,
         }, { onConflict: 'cycle_id,profile_id' })
 
       summariesGenerated++
@@ -157,10 +159,14 @@ async function generateMemberSummary(input: MemberSummaryInput): Promise<string>
     ? Math.round(input.notes.filter(n => n.done).length / input.notes.length * 100)
     : 0
 
-  const message = await anthropic.messages.create({
-    model:      'claude-sonnet-4-20250514',
-    max_tokens: 300,
-    system: `You are writing private, personal career-growth summaries for team members.
+  const completion = await groq.chat.completions.create({
+    model:       GROQ_MODEL,
+    max_tokens:  300,
+    temperature: 0.4,
+    messages: [
+      {
+        role: 'system',
+        content: `You are writing private, personal career-growth summaries for team members.
 The summaries are shown ONLY to the individual themselves — not to managers or peers.
 
 Rules:
@@ -170,9 +176,9 @@ Rules:
 - Keep it to 3 sentences maximum
 - Never mention how many people gave feedback or attempt to attribute specific notes
 - Do not include the person's name
-- Do not use markdown formatting`,
-
-    messages: [
+- Do not use markdown formatting
+- Output only the summary text, nothing else`,
+      },
       {
         role: 'user',
         content: `Write a 3-sentence private feedback summary for this team member.
@@ -189,8 +195,8 @@ Write the summary now.`,
     ],
   })
 
-  const content = message.content[0]
-  if (content.type !== 'text') throw new Error('Unexpected Claude response type')
+  const text = completion.choices[0]?.message?.content?.trim()
+  if (!text) throw new Error('Empty response from Groq')
 
-  return content.text.trim()
+  return text
 }

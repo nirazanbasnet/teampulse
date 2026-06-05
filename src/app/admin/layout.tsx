@@ -5,6 +5,7 @@
 import { redirect }          from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { Topbar }            from '@/components/shared/Topbar'
+import { AdminNav }          from '@/components/admin/AdminNav'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerClient()
@@ -25,10 +26,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .from('workspace_members')
     .select('id').eq('profile_id', user.id).eq('role', 'admin').limit(1).maybeSingle()
 
+  const { data: leadRow } = await supabase
+    .from('team_members')
+    .select('id').eq('profile_id', user.id).eq('role', 'lead').limit(1).maybeSingle()
+
   return (
-    <>
+    <div>
       <Topbar profile={profile as any} isAdmin={!!adminRow} teams={userTeams} />
+      <AdminNav isAdmin={!!adminRow} isLead={!!leadRow} />
       {children}
-    </>
+    </div>
   )
 }

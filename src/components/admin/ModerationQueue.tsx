@@ -2,21 +2,20 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { moderateNote }            from '@/server/actions/notes'
-import { cn }                      from '@/lib/utils'
+import { moderateNote, revealNoteAuthor } from '@/server/actions/notes'
+import { cn }                              from '@/lib/utils'
 
 interface Report {
   id:          string
   reason:      string
+  source:      string
   created_at:  string
-  profiles:    { full_name: string; email: string }
+  profiles:    { full_name: string; email: string } | null
   notes_admin: {
     id:             string
     content:        string
     note_type:      string
     tags:           string[]
-    author_name:    string
-    author_email:   string
     recipient_name: string
   }
 }
@@ -34,12 +33,28 @@ const TYPE_COLORS: Record<string, string> = {
 export function ModerationQueue({ reports: initialReports }: ModerationQueueProps) {
   const [reports,   setReports]   = useState(initialReports)
   const [adminNote, setAdminNote] = useState<Record<string, string>>({})
+  const [revealed,  setRevealed]  = useState<Record<string, { author_name: string; author_email: string }>>({})
+  const [busyId,    setBusyId]    = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   function handleAction(reportId: string, action: 'dismiss' | 'remove') {
     startTransition(async () => {
       await moderateNote(reportId, action, adminNote[reportId])
       setReports(prev => prev.filter(r => r.id !== reportId))
+    })
+  }
+
+  function handleReveal(reportId: string) {
+    setBusyId(reportId)
+    startTransition(async () => {
+      try {
+        const author = await revealNoteAuthor(reportId)
+        setRevealed(prev => ({ ...prev, [reportId]: author }))
+      } catch (e) {
+        console.error('Failed to reveal author:', e)
+      } finally {
+        setBusyId(null)
+      }
     })
   }
 
@@ -55,26 +70,36 @@ export function ModerationQueue({ reports: initialReports }: ModerationQueueProp
   return (
     <div className="flex flex-col gap-3">
       {reports.map(report => {
-        const note = report.notes_admin
+        const note    = report.notes_admin
+        const isAi    = report.source === 'ai' || !report.profiles
+        const author  = revealed[report.id]
         return (
           <div key={report.id} className="border border-border rounded-[12px] overflow-hidden">
             {/* Report header */}
-            <div className="px-[14px] py-[10px] bg-[#FAECE7] border-b border-[#F5C4B3] flex items-start gap-[10px]">
-              <i className="ti ti-flag text-[14px] text-[#993C1D] mt-[2px]" aria-hidden="true" />
+            <div className={cn(
+              'px-[14px] py-[10px] border-b flex items-start gap-[10px]',
+              isAi ? 'bg-[#EEEDFE] border-[#D8D5F5]' : 'bg-[#FAECE7] border-[#F5C4B3]',
+            )}>
+              <i className={cn('ti text-[14px] mt-[2px]', isAi ? 'ti-robot text-[#534AB7]' : 'ti-flag text-[#993C1D]')} aria-hidden="true" />
               <div className="flex-1">
-                <div className="text-[12px] font-medium text-[#993C1D] mb-[2px]">
-                  Reported by {report.profiles.full_name}
+                <div className={cn('text-[12px] font-medium mb-[2px] flex items-center gap-[6px]', isAi ? 'text-[#534AB7]' : 'text-[#993C1D]')}>
+                  {isAi ? 'Flagged by AI moderation' : `Reported by ${report.profiles?.full_name}`}
+                  <span className={cn(
+                    'text-[10px] px-[6px] py-px rounded-[20px] font-mono',
+                    isAi ? 'bg-[#534AB7] text-white' : 'bg-[#993C1D] text-white',
+                  )}>
+                    {isAi ? 'AI' : 'member'}
+                  </span>
                 </div>
-                <div className="text-[12px] text-[#712B13]">
+                <div className={cn('text-[12px]', isAi ? 'text-[#3C3489]' : 'text-[#712B13]')}>
                   Reason: {report.reason}
                 </div>
               </div>
-              <div className="text-[11px] text-[#993C1D] font-mono">
+              <div className={cn('text-[11px] font-mono', isAi ? 'text-[#534AB7]' : 'text-[#993C1D]')}>
                 {new Date(report.created_at).toLocaleDateString()}
               </div>
             </div>
 
-            {/* Note content — author visible to admin only */}
             <div className="p-[14px]">
               <div className="mb-3">
                 <div className="flex items-center gap-2 mb-2">
@@ -107,20 +132,38 @@ export function ModerationQueue({ reports: initialReports }: ModerationQueueProp
                   {note.content}
                 </div>
 
-                {/* Admin-only author info */}
-                <div className="grid grid-cols-2 gap-2 px-[10px] py-2 bg-[#FAEEDA] rounded-lg border border-[#FAC775]">
-                  <div>
-                    <div className="text-[10px] text-[#854F0B] font-mono mb-[2px]">
-                      AUTHOR (admin only)
-                    </div>
-                    <div className="text-[12px] text-[#633806] font-medium">{note.author_name}</div>
-                    <div className="text-[11px] text-[#854F0B]">{note.author_email}</div>
+                {/* Recipient (always visible) + reveal-on-demand author */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="px-[10px] py-2 bg-muted rounded-lg border border-border">
+                    <div className="text-[10px] text-muted-foreground font-mono mb-[2px]">RECIPIENT</div>
+                    <div className="text-[12px] text-foreground font-medium">{note.recipient_name}</div>
                   </div>
-                  <div>
-                    <div className="text-[10px] text-[#854F0B] font-mono mb-[2px]">
-                      RECIPIENT
-                    </div>
-                    <div className="text-[12px] text-[#633806] font-medium">{note.recipient_name}</div>
+
+                  <div className="px-[10px] py-2 bg-[#FAEEDA] rounded-lg border border-[#FAC775]">
+                    <div className="text-[10px] text-[#854F0B] font-mono mb-[4px]">AUTHOR</div>
+                    {author ? (
+                      <>
+                        <div className="text-[12px] text-[#633806] font-medium">{author.author_name}</div>
+                        <div className="text-[11px] text-[#854F0B]">{author.author_email}</div>
+                        <div className="text-[10px] text-[#854F0B]/80 mt-[3px] flex items-center gap-1">
+                          <i className="ti ti-history text-[11px]" aria-hidden="true" /> Revealed · recorded in audit log
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleReveal(report.id)}
+                          disabled={isPending}
+                          className="flex items-center gap-[5px] text-[12px] px-[10px] py-[4px] rounded-md border border-[#FAC775] bg-white text-[#854F0B] cursor-pointer hover:bg-[#FFF7E8]"
+                        >
+                          <i className={cn('ti text-[12px]', busyId === report.id ? 'ti-loader-2 animate-spin' : 'ti-eye')} aria-hidden="true" />
+                          {busyId === report.id ? 'Revealing…' : 'Reveal author'}
+                        </button>
+                        <div className="text-[10px] text-[#854F0B]/80 mt-[4px]">
+                          Anonymous by default. Revealing is recorded in the audit log.
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

@@ -11,9 +11,9 @@ import type { NoteTag, NoteType, NoteSafe } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const NOTE_TYPES: { key: NoteType; label: string; desc: string }[] = [
-  { key: 'general',  label: 'General',  desc: 'Any observation' },
-  { key: 'strength', label: 'Strength', desc: 'Keep doing this'  },
-  { key: 'growth',   label: 'Growth',   desc: 'Improve here'     },
+  { key: 'general', label: 'General', desc: 'Any observation' },
+  { key: 'strength', label: 'Strength', desc: 'Keep doing this' },
+  { key: 'growth', label: 'Growth', desc: 'Improve here' },
 ]
 
 const ALL_TAGS: NoteTag[] = [
@@ -23,12 +23,12 @@ const ALL_TAGS: NoteTag[] = [
 const CHAR_LIMIT = 400
 
 interface AddNoteModalProps {
-  teamId:        string
-  cycleId?:      string
-  recipientId:   string
+  teamId: string
+  cycleId?: string
+  recipientId: string
   recipientName: string
-  onClose:       () => void
-  onSuccess:     (note: NoteSafe) => void
+  onClose: () => void
+  onSuccess: (note: NoteSafe) => void
 }
 
 export function AddNoteModal({
@@ -39,10 +39,10 @@ export function AddNoteModal({
   onClose,
   onSuccess,
 }: AddNoteModalProps) {
-  const [noteType, setNoteType]   = useState<NoteType>('general')
-  const [tags, setTags]           = useState<NoteTag[]>([])
-  const [content, setContent]     = useState('')
-  const [error, setError]         = useState<string | null>(null)
+  const [noteType, setNoteType] = useState<NoteType>('general')
+  const [tags, setTags] = useState<NoteTag[]>([])
+  const [content, setContent] = useState('')
+  const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -66,33 +66,33 @@ export function AddNoteModal({
     startTransition(async () => {
       try {
         await createNote({
-          team_id:      teamId,
-          cycle_id:     cycleId,
+          team_id: teamId,
+          cycle_id: cycleId,
           recipient_id: recipientId,
-          note_type:    noteType,
-          content:      content.trim(),
+          note_type: noteType,
+          content: content.trim(),
           tags,
         })
 
         // Build optimistic note for immediate UI update
         const optimisticNote: NoteSafe = {
-          id:            crypto.randomUUID(),
-          team_id:       teamId,
-          cycle_id:      cycleId ?? null,
-          recipient_id:  recipientId,
-          note_type:     noteType,
-          content:       content.trim(),
+          id: crypto.randomUUID(),
+          team_id: teamId,
+          cycle_id: cycleId ?? null,
+          recipient_id: recipientId,
+          note_type: noteType,
+          content: content.trim(),
           tags,
-          position:      999,
-          done:          false,
-          done_at:       null,
-          priority:      false,
-          created_at:    new Date().toISOString(),
-          updated_at:    new Date().toISOString(),
-          is_mine:       true,
+          position: 999,
+          done: false,
+          done_at: null,
+          priority: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_mine: true,
           can_mark_done: false,
-          can_edit:      true,
-          reactions:     [],
+          can_edit: true,
+          reactions: [],
         }
 
         onSuccess(optimisticNote)
@@ -155,11 +155,11 @@ export function AddNoteModal({
                   'flex-1 py-[7px] px-1 rounded-lg text-[12px] text-center cursor-pointer',
                   noteType === t.key
                     ? cn(
-                        'border-2 border-current font-medium',
-                        t.key === 'general'  && 'bg-[#FFFDE7] text-[#3D2C00]',
-                        t.key === 'strength' && 'bg-[#E1F5EE] text-[#04342C]',
-                        t.key === 'growth'   && 'bg-[#E6F1FB] text-[#042C53]',
-                      )
+                      'border-2 border-current font-medium',
+                      t.key === 'general' && 'bg-[#FFFDE7] text-[#3D2C00]',
+                      t.key === 'strength' && 'bg-[#E1F5EE] text-[#04342C]',
+                      t.key === 'growth' && 'bg-[#E6F1FB] text-[#042C53]',
+                    )
                     : 'border border-border bg-transparent text-muted-foreground font-normal',
                 )}
               >
@@ -204,7 +204,7 @@ export function AddNoteModal({
           className="w-full resize-y text-[13px] py-[10px] px-3 border border-border rounded-lg bg-muted text-foreground font-[inherit] leading-[1.5]"
         />
 
-        <div className="flex justify-between items-center mt-[6px] mb-[14px]">
+        <div className="flex flex-wrap justify-between items-center mt-[6px] mb-[14px]">
           <span
             className={cn(
               'text-[11px] font-mono',
@@ -214,7 +214,7 @@ export function AddNoteModal({
             {remaining} chars remaining
           </span>
           {error && (
-            <span className="text-[11px] text-[#993C1D]">{error}</span>
+            <span className="p-2 rounded bg-[#FAECE7] text-[11px] text-[#993C1D]">{error}</span>
           )}
         </div>
 

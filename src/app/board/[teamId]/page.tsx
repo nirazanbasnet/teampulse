@@ -148,7 +148,7 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
   }
 
   return (
-    <>
+    <div>
       <BoardWelcomeToast joined={searchParams?.joined === '1'} teamName={(team as any).name} />
       <Topbar
         profile={profile as any}
@@ -161,7 +161,7 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
         boardState={boardState}
         currentUserId={user.id}
       />
-    </>
+    </div>
   )
 }
 

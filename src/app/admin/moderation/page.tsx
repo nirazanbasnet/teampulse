@@ -21,13 +21,15 @@ export default async function ModerationPage() {
 
   if (!adminCheck) redirect('/auth/login')
 
-  // Load pending reports with full note data (service role to see author)
+  // Load pending reports. NOTE: the author is intentionally NOT selected
+  // here — author identity is revealed only on demand via revealNoteAuthor
+  // (audit-logged). We only surface the note content + recipient.
   const { data: reports } = await serviceClient
     .from('content_reports')
     .select(`
       *,
       profiles!content_reports_reporter_id_fkey(full_name, email),
-      notes_admin!inner(id, content, note_type, tags, author_name, author_email, recipient_name)
+      notes_admin!inner(id, content, note_type, tags, recipient_name)
     `)
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
