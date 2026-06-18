@@ -29,6 +29,7 @@ export function TeamBuilder({
   const [teams, setTeams] = useState(initialTeams)
   const [selectedTeam, setSelectedTeam] = useState<string | null>(initialTeams[0]?.id ?? null)
   const [creating, setCreating] = useState(false)
+  const [creatingPending, setCreatingPending] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
   const [error, setError] = useState('')
   const [addingId, setAddingId] = useState<string | null>(null)
@@ -43,16 +44,23 @@ export function TeamBuilder({
   const activeTeam = teams.find(t => t.id === selectedTeam)
 
   function handleCreateTeam() {
-    if (!newTeamName.trim()) return
+    if (!newTeamName.trim() || creatingPending) return
+    const name = newTeamName.trim()
     setError('')
+    setCreatingPending(true)
     startTransition(async () => {
       try {
-        await createTeam({ workspaceId, name: newTeamName.trim() })
+        await createTeam({ workspaceId, name })
         setNewTeamName('')
         setCreating(false)
+        toast(`Team “${name}” created`)
         router.refresh()
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to create team')
+        const msg = e instanceof Error ? e.message : 'Failed to create team'
+        setError(msg)
+        toast(msg, 'error')
+      } finally {
+        setCreatingPending(false)
       }
     })
   }
@@ -187,8 +195,13 @@ export function TeamBuilder({
                 />
                 <div className="flex gap-1 mt-[6px]">
                   <button onClick={() => setCreating(false)} className="py-1 px-2.5 text-xs rounded-[6px] border border-border bg-transparent cursor-pointer text-muted-foreground">Cancel</button>
-                  <button onClick={handleCreateTeam} disabled={!newTeamName.trim() || isPending} className="py-1 px-2.5 text-xs rounded-[6px] border-none bg-primary text-white cursor-pointer font-medium">
-                    Create
+                  <button
+                    onClick={handleCreateTeam}
+                    disabled={!newTeamName.trim() || creatingPending}
+                    className="flex items-center gap-1 py-1 px-2.5 text-xs rounded-[6px] border-none bg-primary text-white cursor-pointer font-medium disabled:opacity-60"
+                  >
+                    {creatingPending && <i className="ti ti-loader-2 text-xs animate-spin" aria-hidden="true" />}
+                    {creatingPending ? 'Creating…' : 'Create'}
                   </button>
                 </div>
               </div>

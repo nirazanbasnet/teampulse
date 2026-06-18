@@ -121,10 +121,15 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
     summary = data
   }
 
-  const isAdmin = team.team_members.some(
-    (m: any) => m.profile_id === user.id
-    // In practice check workspace_members role too
-  )
+  // Admin = a workspace admin of THIS team's workspace (not just any member).
+  const { data: adminRow } = await supabase
+    .from('workspace_members')
+    .select('id')
+    .eq('workspace_id', (team as any).workspace_id)
+    .eq('profile_id', user.id)
+    .eq('role', 'admin')
+    .maybeSingle()
+  const isAdmin = !!adminRow
 
   // Topbar data: profile + teams the user belongs to
   const { data: profile } = await supabase

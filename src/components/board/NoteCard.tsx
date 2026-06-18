@@ -19,9 +19,9 @@ const TYPE_CHIP: Record<NoteType, { label: string; icon: string; bg: string; col
 
 // Tailwind arbitrary-value classes per note_type (bg + border)
 const TYPE_BG_BORDER: Record<NoteType, string> = {
-  general: 'bg-[#FFFDE7] border-[#E8CF3A]',
-  strength: 'bg-[#E1F5EE] border-[#5DCAA5]',
-  growth: 'bg-[#E6F1FB] border-[#85B7EB]',
+  general: 'bg-[#FFFDE7]',
+  strength: 'bg-[#E1F5EE]',
+  growth: 'bg-[#E6F1FB]',
 }
 
 // Text color per note_type
@@ -41,8 +41,6 @@ interface NoteCardProps {
   onSetPriority?: (noteId: string, priority: boolean) => void
   /** True while BoardView is persisting this note's priority change. */
   saving?: boolean
-  /** True when this card is rendered inside the Priorities lane. */
-  inPriorityLane?: boolean
   /** Bumped by BoardView to trigger a "needs evidence" shake (e.g. a blocked drag-to-Done). */
   shakeSignal?: number
   /** Notifies BoardView when this note's evidence list changes (keeps the Done-gate in sync). */
@@ -78,7 +76,7 @@ function renderEvidence(text: string) {
 
 export function NoteCard({
   note, currentUserId, isDragging = false, rank, onSetPriority, saving = false,
-  inPriorityLane = false, shakeSignal = 0, onEvidenceChange,
+  shakeSignal = 0, onEvidenceChange,
 }: NoteCardProps) {
   const [showReport, setShowReport] = useState(false)
   const [reportText, setReportText] = useState('')
@@ -135,19 +133,6 @@ export function NoteCard({
     transition,
     opacity: isSortableDragging ? 0.35 : 1,
     rotate: isDragging ? '1.5deg' : undefined,
-    borderLeftColor: accentColor,
-    borderLeftWidth: accentColor ? 3 : undefined,
-  }
-
-  function handleMarkDone() {
-    // Evidence is required before a note can move to Done.
-    if (evidence.length === 0) {
-      triggerNeedsEvidence()
-      return
-    }
-    startTransition(async () => {
-      await setNoteDone(note.id, true)
-    })
   }
 
   function handleUndone() {
@@ -328,15 +313,6 @@ export function NoteCard({
               spin={saving}
             />
           )}
-          {note.can_mark_done && !note.done && !inPriorityLane && (
-            <ActionBtn
-              icon="ti-check"
-              label="Mark done"
-              color="#1D9E75"
-              onClick={handleMarkDone}
-              disabled={isPending}
-            />
-          )}
           {note.can_mark_done && note.done && (
             <ActionBtn
               icon="ti-arrow-back-up"
@@ -391,6 +367,7 @@ export function NoteCard({
         <div
           className="mt-[6px] pt-[6px] border-t border-black/[.07]"
           onPointerDown={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
         >
           <button
             onClick={() => setShowEvidence(v => !v)}
@@ -469,6 +446,7 @@ export function NoteCard({
         <div
           className="mt-[8px]"
           onPointerDown={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
         >
           <textarea
             value={reportText}

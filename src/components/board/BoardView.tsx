@@ -46,6 +46,9 @@ import type { BoardState, NoteSafe, NoteEvidence } from '@/lib/types'
 const PRIORITY_ZONE_ID = 'priority-zone'
 const DONE_ZONE_ID = 'done-zone'
 
+// Newest feedback first (descending by creation time).
+const byNewest = (a: NoteSafe, b: NoteSafe) => (b.created_at ?? '').localeCompare(a.created_at ?? '')
+
 interface BoardViewProps {
   boardState: BoardState
   currentUserId: string
@@ -56,8 +59,8 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
   const [activeNote, setActiveNote] = useState<NoteSafe | null>(null)
   const [addModalFor, setAddModalFor] = useState<{ recipientId: string; recipientName: string } | null>(null)
   const [savingIds, setSavingIds] = useState<Set<string>>(() => new Set())
-  // Peers are collapsed by default — expand to browse the team's feedback.
-  const [showPeers, setShowPeers] = useState(false)
+  // Team feedback is expanded by default; collapse to focus on your own area.
+  const [showPeers, setShowPeers] = useState(true)
   // Drives the "needs evidence" shake on a card whose drag-to-Done was blocked.
   const [shake, setShake] = useState<{ id: string; n: number } | null>(null)
   const [, startTransition] = useTransition()
@@ -109,9 +112,10 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
   const myColumn = columns.find(c => c.isMyColumn)
   const otherColumns = columns.filter(c => !c.isMyColumn)
   const myProfileId = myColumn?.member.profile_id
-  const myInbox = (myColumn?.notes ?? []).filter(n => !n.done && !n.priority)
+  // Inbox & Done show newest first; Priorities keeps the user's manual ranking.
+  const myInbox = (myColumn?.notes ?? []).filter(n => !n.done && !n.priority).sort(byNewest)
   const myPriorities = (myColumn?.notes ?? []).filter(n => !n.done && n.priority)
-  const myDone = (myColumn?.notes ?? []).filter(n => n.done)
+  const myDone = (myColumn?.notes ?? []).filter(n => n.done).sort(byNewest)
 
   // ── dnd-kit sensors ───────────────────────────────────────
 
@@ -251,7 +255,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
         cycleName={boardState.cycle?.name ?? null}
       />
 
-      <div className="mx-auto max-w-[1100px] px-4 py-3">
+      <div className="mx-auto max-w-[1200px] px-4 py-3">
         {/* Give feedback — searchable teammate picker (scales to any team size) */}
         {otherColumns.length > 0 && (
           <div className="mb-4">
@@ -318,7 +322,6 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                   savingIds={savingIds}
                   shake={shake}
                   onEvidenceChange={handleEvidenceChange}
-                  priorityLane
                   ranked
                   header={
                     <div className="px-3 pt-2.5 pb-[9px] border-b border-border flex items-center gap-[9px] bg-[#FAEEDA] rounded-t-[12px]">
@@ -376,22 +379,20 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                 <span className="font-mono text-[11px] text-muted-foreground/70">{otherColumns.length}</span>
               </button>
               {showPeers && (
-                <div className="mt-2 overflow-x-auto pb-1">
-                  <div className="flex min-w-max items-start gap-3">
-                    {otherColumns.map(col => (
-                      <BoardColumn
-                        key={col.member.profile_id}
-                        column={col}
-                        currentUserId={currentUserId}
-                        onAddNote={() =>
-                          setAddModalFor({
-                            recipientId: col.member.profile_id,
-                            recipientName: col.member.profile.full_name,
-                          })
-                        }
-                      />
-                    ))}
-                  </div>
+                <div className="mt-2 flex items-start gap-3 overflow-x-auto pb-2">
+                  {otherColumns.map(col => (
+                    <BoardColumn
+                      key={col.member.profile_id}
+                      column={{ ...col, notes: [...col.notes].sort(byNewest) }}
+                      currentUserId={currentUserId}
+                      onAddNote={() =>
+                        setAddModalFor({
+                          recipientId: col.member.profile_id,
+                          recipientName: col.member.profile.full_name,
+                        })
+                      }
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -426,7 +427,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
 
 function DropLane({
   id, notes, currentUserId, header, emptyHint, accent, dashed, ranked, onSetPriority, savingIds,
-  priorityLane, shake, onEvidenceChange,
+  shake, onEvidenceChange,
 }: {
   id: string
   notes: NoteSafe[]
@@ -438,7 +439,6 @@ function DropLane({
   ranked?: boolean
   onSetPriority?: (noteId: string, priority: boolean) => void
   savingIds?: Set<string>
-  priorityLane?: boolean
   shake?: { id: string; n: number } | null
   onEvidenceChange?: (noteId: string, evidence: NoteEvidence[]) => void
 }) {
@@ -470,7 +470,6 @@ function DropLane({
                 rank={ranked ? i + 1 : undefined}
                 onSetPriority={onSetPriority}
                 saving={savingIds?.has(note.id)}
-                inPriorityLane={priorityLane}
                 shakeSignal={shake?.id === note.id ? shake.n : 0}
                 onEvidenceChange={onEvidenceChange}
               />

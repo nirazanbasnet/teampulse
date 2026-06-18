@@ -30,7 +30,7 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
   return (
     <div
       className={cn(
-        'w-[212px] shrink-0 rounded-[12px] flex flex-col',
+        'w-[250px] shrink-0 rounded-[12px] flex flex-col',
         'transition-[border-color,background] duration-150',
         isOver && !isMyColumn
           ? 'border-[1.5px] border-primary bg-accent'
