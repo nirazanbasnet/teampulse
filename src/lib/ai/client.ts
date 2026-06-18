@@ -58,8 +58,10 @@ export async function chatCompletion(req: ChatRequest): Promise<ChatResponse> {
   for (const { provider, client, model } of attempts) {
     if (!client) continue
     try {
-      const create = client.chat.completions.create as (args: any) => Promise<any>
-      const completion = await create({
+      // Call as a member expression (not via an extracted variable) so the SDK
+      // method keeps its `this` binding — otherwise it reads `this._client` on
+      // undefined. `client as any` also sidesteps the incompatible-union types.
+      const completion = await (client as any).chat.completions.create({
         model,
         max_tokens:  req.maxTokens,
         temperature: req.temperature,

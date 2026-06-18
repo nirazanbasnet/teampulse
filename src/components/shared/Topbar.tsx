@@ -27,6 +27,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
 
   const navItems = team ? [
     { href: `/board/${team.id}`, label: 'Board', icon: 'ti-layout-kanban' },
+    { href: `/report/${team.id}`, label: 'Growth', icon: 'ti-chart-radar' },
     { href: `/analytics/${team.id}`, label: 'Analytics', icon: 'ti-chart-bar' },
     ...(isAdmin ? [{ href: `/admin/teams`, label: 'Admin', icon: 'ti-settings' }] : []),
   ] : []
@@ -141,7 +142,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
             className="w-[30px] h-[30px] rounded-full overflow-hidden cursor-pointer border border-border block"
             aria-label="Account menu"
           >
-            <Avatar name={profile.full_name} size={30} />
+            <Avatar name={profile.full_name} size={30} src={(profile as any).avatar_url} email={profile.email} />
           </button>
 
           {menuOpen && (
