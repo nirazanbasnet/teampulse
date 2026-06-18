@@ -19,7 +19,7 @@ interface AnalyticsDashboardProps {
   currentUserId: string
   personalSummary: string | null
   isAdmin: boolean
-  teamScores: GrowthScores
+  teamScores?: GrowthScores | null
   myScores: GrowthScores
 }
 
@@ -107,10 +107,14 @@ export function AnalyticsDashboard({
             <div className="mb-3.5 flex items-center justify-between">
               <h3 className="text-[13px] font-medium">Team competency health</h3>
               <span className="font-mono text-[12px] text-muted-foreground">
-                overall {teamScores.overall ?? '—'} · {scoreLabel(teamScores.overall)}
+                overall {teamScores?.overall ?? '—'} · {scoreLabel(teamScores?.overall ?? null)}
               </span>
             </div>
-            <CompetencyBars scores={teamScores} />
+            {teamScores ? (
+              <CompetencyBars scores={teamScores} />
+            ) : (
+              <div className="text-[12px] text-muted-foreground">No team competency scores available yet.</div>
+            )}
             <p className="mt-3 text-[10.5px] leading-relaxed text-muted-foreground/80">
               Per competency, the balance of strength vs. growth notes across the whole team (smoothed for small samples). Higher = the team is collectively strong here.
             </p>
