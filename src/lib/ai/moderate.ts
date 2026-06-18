@@ -1,5 +1,5 @@
 // ============================================================
-// TeamPulse — AI content moderation (Groq)
+// TeamPulse — AI content moderation (Cerebras → Groq)
 // src/lib/ai/moderate.ts
 //
 // Screens peer feedback BEFORE it is saved. Server-only.
@@ -10,11 +10,12 @@
 //               the admin moderation queue for review.
 //   - 'allow' : constructive or neutral work feedback (incl. critical).
 //
-// Fails OPEN: if Groq errors, the note is allowed (so an AI outage
-// never blocks legitimate feedback).
+// Runs on Cerebras (primary) with automatic Groq fallback.
+// Fails OPEN: if every provider errors, the note is allowed (so an
+// AI outage never blocks legitimate feedback).
 // ============================================================
 
-import Groq from 'groq-sdk'
+import { chatCompletion } from './client'
 
 export type ModerationDecision = 'allow' | 'flag' | 'block'
 
@@ -24,9 +25,8 @@ export interface ModerationResult {
   reason:   string   // short, user-facing explanation
 }
 
-const MODERATION_MODEL = 'llama-3.1-8b-instant'
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+const CEREBRAS_MODEL = 'llama3.1-8b'
+const GROQ_MODEL     = 'llama-3.1-8b-instant'
 
 const SYSTEM_PROMPT = `You are a content moderator for a workplace ANONYMOUS peer-feedback tool.
 Members leave short feedback notes on each other's work and behaviour. Decide if a note is acceptable.
@@ -41,18 +41,18 @@ Key rule: critique of the WORK is allowed ("your code is buggy, add tests"); att
 
 export async function moderateFeedback(content: string): Promise<ModerationResult> {
   try {
-    const completion = await groq.chat.completions.create({
-      model:       MODERATION_MODEL,
-      max_tokens:  120,
-      temperature: 0,
-      response_format: { type: 'json_object' },
+    const { text: raw } = await chatCompletion({
+      cerebrasModel: CEREBRAS_MODEL,
+      groqModel:     GROQ_MODEL,
+      maxTokens:     120,
+      temperature:   0,
+      json:          true,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user',   content: `Feedback note:\n"""${content}"""` },
       ],
     })
 
-    const raw = completion.choices[0]?.message?.content?.trim()
     if (!raw) return { decision: 'allow', category: 'ok', reason: '' }
 
     const parsed = JSON.parse(raw) as Partial<ModerationResult>
@@ -66,7 +66,7 @@ export async function moderateFeedback(content: string): Promise<ModerationResul
     }
   } catch (err) {
     // Fail open — never block legitimate feedback because the AI is down.
-    console.error('[moderation] Groq error, allowing note:', err)
+    console.error('[moderation] AI error, allowing note:', err)
     return { decision: 'allow', category: 'ok', reason: '' }
   }
 }

@@ -7,22 +7,22 @@ import type { FeedbackCycle } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 interface CycleManagerProps {
-  teams:  { id: string; name: string }[]
+  teams: { id: string; name: string }[]
   cycles: (FeedbackCycle & { teams: { name: string } })[]
 }
 
 const STATUS_STYLES = {
-  active:   { bg: '#E1F5EE', color: '#0F6E56', dot: '#1D9E75' },
-  closed:   { bg: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)', dot: 'var(--color-border-secondary)' },
-  archived: { bg: 'var(--color-background-secondary)', color: 'var(--color-text-tertiary)',  dot: 'var(--color-border-tertiary)'  },
+  active: { bg: '#E1F5EE', color: '#0F6E56', dot: '#1D9E75' },
+  closed: { bg: 'var(--color-background-secondary)', color: 'var(--color-text-secondary)', dot: 'var(--color-border-secondary)' },
+  archived: { bg: 'var(--color-background-secondary)', color: 'var(--color-text-tertiary)', dot: 'var(--color-border-tertiary)' },
 }
 
 export function CycleManager({ teams, cycles }: CycleManagerProps) {
-  const [creating,     setCreating]     = useState(false)
-  const [cycleName,    setCycleName]    = useState('')
-  const [teamId,       setTeamId]       = useState(teams[0]?.id ?? '')
+  const [creating, setCreating] = useState(false)
+  const [cycleName, setCycleName] = useState('')
+  const [teamId, setTeamId] = useState(teams[0]?.id ?? '')
   const [confirmClose, setConfirmClose] = useState<string | null>(null)
-  const [isPending,    startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition()
 
   function handleCreate() {
     if (!cycleName.trim() || !teamId) return
@@ -49,7 +49,7 @@ export function CycleManager({ teams, cycles }: CycleManagerProps) {
       <div className="border border-border rounded-[12px] mb-4 overflow-hidden">
         <div
           className={cn(
-            'px-[14px] py-[10px] bg-muted flex items-center justify-between',
+            'px-[14px] py-2.5 bg-muted flex items-center justify-between',
             creating ? 'border-b border-border' : 'border-b-0',
           )}
         >
@@ -57,7 +57,7 @@ export function CycleManager({ teams, cycles }: CycleManagerProps) {
           <button
             onClick={() => setCreating(v => !v)}
             className={cn(
-              'py-[5px] px-3 text-xs rounded-lg border border-border cursor-pointer',
+              'py-1 px-3 text-xs rounded-lg border border-border cursor-pointer',
               creating
                 ? 'bg-background text-muted-foreground'
                 : 'bg-primary text-white border-primary',
@@ -69,7 +69,7 @@ export function CycleManager({ teams, cycles }: CycleManagerProps) {
 
         {creating && (
           <div className="p-[14px]">
-            <div className="grid grid-cols-2 gap-[10px] mb-3">
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
               <div>
                 <label className="text-xs text-muted-foreground block mb-[5px]">
                   Team
@@ -77,7 +77,7 @@ export function CycleManager({ teams, cycles }: CycleManagerProps) {
                 <select
                   value={teamId}
                   onChange={e => setTeamId(e.target.value)}
-                  className="w-full text-[13px] py-[7px] px-[10px] border border-border rounded-lg bg-background text-foreground"
+                  className="w-full text-[13px] py-[7px] px-2.5 border border-border rounded-lg bg-background text-foreground"
                 >
                   {teams.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
@@ -93,7 +93,7 @@ export function CycleManager({ teams, cycles }: CycleManagerProps) {
                   onChange={e => setCycleName(e.target.value)}
                   placeholder="e.g. Sprint 6, Q3 Retro..."
                   onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                  className="w-full text-[13px] py-[7px] px-[10px] border border-border rounded-lg bg-background text-foreground"
+                  className="w-full text-[13px] py-[7px] px-2.5 border border-border rounded-lg bg-background text-foreground"
                 />
               </div>
             </div>
@@ -116,7 +116,7 @@ export function CycleManager({ teams, cycles }: CycleManagerProps) {
         {cycles.map(cycle => {
           const s = STATUS_STYLES[cycle.status]
           return (
-            <div key={cycle.id} className="border border-border rounded-[10px] py-3 px-[14px] flex items-center gap-3">
+            <div key={cycle.id} className="border border-border rounded-2.5 py-3 px-[14px] flex items-center gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm font-medium">{cycle.name}</span>
@@ -144,17 +144,17 @@ export function CycleManager({ teams, cycles }: CycleManagerProps) {
                     <span className="text-xs text-muted-foreground">
                       Close and generate AI summaries?
                     </span>
-                    <button onClick={() => handleClose(cycle.id)} disabled={isPending} className="py-1 px-[10px] text-xs rounded-md border-none bg-primary text-white cursor-pointer">
+                    <button onClick={() => handleClose(cycle.id)} disabled={isPending} className="py-1 px-2.5 text-xs rounded-md border-none bg-primary text-white cursor-pointer">
                       Confirm
                     </button>
-                    <button onClick={() => setConfirmClose(null)} className="py-1 px-[10px] text-xs rounded-md border border-border bg-transparent cursor-pointer text-muted-foreground">
+                    <button onClick={() => setConfirmClose(null)} className="py-1 px-2.5 text-xs rounded-md border border-border bg-transparent cursor-pointer text-muted-foreground">
                       Cancel
                     </button>
                   </div>
                 ) : (
                   <button
                     onClick={() => setConfirmClose(cycle.id)}
-                    className="py-[5px] px-3 text-xs rounded-lg border border-border bg-transparent cursor-pointer text-muted-foreground flex items-center gap-[5px]"
+                    className="py-1 px-3 text-xs rounded-lg border border-border bg-transparent cursor-pointer text-muted-foreground flex items-center gap-[5px]"
                   >
                     <i className="ti ti-lock text-xs" aria-hidden="true" />
                     Close cycle
@@ -166,7 +166,7 @@ export function CycleManager({ teams, cycles }: CycleManagerProps) {
         })}
 
         {cycles.length === 0 && (
-          <div className="border border-dashed border-border rounded-[10px] p-8 text-center text-muted-foreground/70 text-[13px]">
+          <div className="border border-dashed border-border rounded-2.5 p-8 text-center text-muted-foreground/70 text-[13px]">
             No cycles yet. Open one above to start collecting feedback.
           </div>
         )}

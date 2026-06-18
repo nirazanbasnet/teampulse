@@ -3,8 +3,9 @@
 // src/server/actions/summaries.ts
 //
 // Triggered when an admin closes a feedback cycle.
-// Generates a private per-member plain-language summary
-// using the Groq API. Uses service role to access full note data.
+// Generates a private per-member plain-language summary using the
+// shared AI client (Cerebras primary, Groq fallback). Uses service
+// role to access full note data.
 //
 // The summary is:
 //   - Generated server-side only (API key never exposed)
@@ -14,16 +15,13 @@
 
 'use server'
 
-import Groq from 'groq-sdk'
+import { chatCompletion } from '@/lib/ai/client'
 import { createServerClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { NoteTag, NoteType } from '@/lib/types'
 
-const GROQ_MODEL = 'llama-3.3-70b-versatile'
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+const CEREBRAS_MODEL = 'llama-3.3-70b'
+const GROQ_MODEL     = 'llama-3.3-70b-versatile'
 
 // ── Close cycle and generate all member summaries ────────────
 
@@ -83,7 +81,7 @@ export async function closeCycleAndGenerateSummaries(cycleId: string) {
     if (recipientNotes.length < 2) continue
 
     try {
-      const summaryText = await generateMemberSummary({
+      const { text: summaryText, model: modelUsed } = await generateMemberSummary({
         recipientName: recipientNotes[0].recipient_name,
         cycleName:     cycle.name,
         notes:         recipientNotes.map(n => ({
@@ -101,7 +99,7 @@ export async function closeCycleAndGenerateSummaries(cycleId: string) {
           cycle_id:     cycleId,
           profile_id:   recipientId,
           summary_text: summaryText,
-          model_used:   GROQ_MODEL,
+          model_used:   modelUsed,
         }, { onConflict: 'cycle_id,profile_id' })
 
       summariesGenerated++
@@ -130,7 +128,7 @@ export async function closeCycleAndGenerateSummaries(cycleId: string) {
   return { success: true, summaries_generated: summariesGenerated }
 }
 
-// ── Generate one member's summary via Claude ─────────────────
+// ── Generate one member's summary (Cerebras → Groq) ──────────
 
 interface MemberSummaryInput {
   recipientName: string
@@ -143,7 +141,9 @@ interface MemberSummaryInput {
   }[]
 }
 
-async function generateMemberSummary(input: MemberSummaryInput): Promise<string> {
+async function generateMemberSummary(
+  input: MemberSummaryInput,
+): Promise<{ text: string; model: string }> {
   const notesSummary = input.notes
     .map((n, i) => {
       const tags = n.tags.length ? `[${n.tags.join(', ')}]` : '[untagged]'
@@ -159,10 +159,11 @@ async function generateMemberSummary(input: MemberSummaryInput): Promise<string>
     ? Math.round(input.notes.filter(n => n.done).length / input.notes.length * 100)
     : 0
 
-  const completion = await groq.chat.completions.create({
-    model:       GROQ_MODEL,
-    max_tokens:  300,
-    temperature: 0.4,
+  const { text, model } = await chatCompletion({
+    cerebrasModel: CEREBRAS_MODEL,
+    groqModel:     GROQ_MODEL,
+    maxTokens:     300,
+    temperature:   0.4,
     messages: [
       {
         role: 'system',
@@ -195,8 +196,7 @@ Write the summary now.`,
     ],
   })
 
-  const text = completion.choices[0]?.message?.content?.trim()
-  if (!text) throw new Error('Empty response from Groq')
+  if (!text) throw new Error('Empty response from AI provider')
 
-  return text
+  return { text, model }
 }

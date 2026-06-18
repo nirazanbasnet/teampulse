@@ -1,43 +1,49 @@
 // src/components/board/NoteCard.tsx
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
-import { CSS }         from '@dnd-kit/utilities'
+import { CSS } from '@dnd-kit/utilities'
 import { setNoteDone, setNotePriority, deleteNote, reportNote, toggleReaction, addEvidence, deleteEvidence } from '@/server/actions/notes'
 import type { NoteSafe, NoteType, NoteEvidence } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const TYPE_STYLES: Record<NoteType, { bg: string; border: string; color: string; label: string }> = {
-  general:  { bg: '#FFFDE7', border: '#E8CF3A', color: '#3D2C00', label: 'General'  },
+  general: { bg: '#FFFDE7', border: '#E8CF3A', color: '#3D2C00', label: 'General' },
   strength: { bg: '#E1F5EE', border: '#5DCAA5', color: '#04342C', label: 'Strength' },
-  growth:   { bg: '#E6F1FB', border: '#85B7EB', color: '#042C53', label: 'Growth'   },
+  growth: { bg: '#E6F1FB', border: '#85B7EB', color: '#042C53', label: 'Growth' },
 }
 
 // Tailwind arbitrary-value classes per note_type (bg + border)
 const TYPE_BG_BORDER: Record<NoteType, string> = {
-  general:  'bg-[#FFFDE7] border-[#E8CF3A]',
+  general: 'bg-[#FFFDE7] border-[#E8CF3A]',
   strength: 'bg-[#E1F5EE] border-[#5DCAA5]',
-  growth:   'bg-[#E6F1FB] border-[#85B7EB]',
+  growth: 'bg-[#E6F1FB] border-[#85B7EB]',
 }
 
 // Text color per note_type
 const TYPE_TEXT: Record<NoteType, string> = {
-  general:  'text-[#3D2C00]',
+  general: 'text-[#3D2C00]',
   strength: 'text-[#04342C]',
-  growth:   'text-[#042C53]',
+  growth: 'text-[#042C53]',
 }
 
 interface NoteCardProps {
-  note:          NoteSafe
+  note: NoteSafe
   currentUserId: string
-  isDragging?:   boolean
+  isDragging?: boolean
   /** Priority rank (1-based) — shown only in the Priorities lane. */
-  rank?:         number
+  rank?: number
   /** Optimistic priority toggle owned by BoardView (moves the note + persists). */
   onSetPriority?: (noteId: string, priority: boolean) => void
   /** True while BoardView is persisting this note's priority change. */
-  saving?:       boolean
+  saving?: boolean
+  /** True when this card is rendered inside the Priorities lane. */
+  inPriorityLane?: boolean
+  /** Bumped by BoardView to trigger a "needs evidence" shake (e.g. a blocked drag-to-Done). */
+  shakeSignal?: number
+  /** Notifies BoardView when this note's evidence list changes (keeps the Done-gate in sync). */
+  onEvidenceChange?: (noteId: string, evidence: NoteEvidence[]) => void
 }
 
 function formatNoteDate(iso: string): string {
@@ -67,18 +73,34 @@ function renderEvidence(text: string) {
   )
 }
 
-export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetPriority, saving = false }: NoteCardProps) {
-  const [showReport,  setShowReport]  = useState(false)
-  const [reportText,  setReportText]  = useState('')
-  const [isPending, startTransition]  = useTransition()
+export function NoteCard({
+  note, currentUserId, isDragging = false, rank, onSetPriority, saving = false,
+  inPriorityLane = false, shakeSignal = 0, onEvidenceChange,
+}: NoteCardProps) {
+  const [showReport, setShowReport] = useState(false)
+  const [reportText, setReportText] = useState('')
+  const [isPending, startTransition] = useTransition()
+
+  // ── "Needs evidence" shake — visual alert when a Done attempt is blocked ──
+  const [shake, setShake] = useState(false)
+  function triggerNeedsEvidence() {
+    setShowEvidence(true)               // reveal where to add proof
+    setShake(false)                     // reset so the animation can replay
+    requestAnimationFrame(() => requestAnimationFrame(() => setShake(true)))
+  }
+  // BoardView bumps shakeSignal when it blocks a drag-to-Done on this card.
+  useEffect(() => {
+    if (shakeSignal > 0) triggerNeedsEvidence()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shakeSignal])
 
   // ── Vote (+1) — optimistic local state from the 👍 reaction ──
   const thumbs = note.reactions?.find(r => r.emoji === '👍')
   const [voteCount, setVoteCount] = useState(thumbs?.count ?? 0)
-  const [voted,     setVoted]     = useState(thumbs?.reacted_by_me ?? false)
+  const [voted, setVoted] = useState(thumbs?.reacted_by_me ?? false)
 
   // ── Evidence — proof the recipient acted on the feedback ──
-  const [evidence,     setEvidence]     = useState<NoteEvidence[]>(note.evidence ?? [])
+  const [evidence, setEvidence] = useState<NoteEvidence[]>(note.evidence ?? [])
   const [showEvidence, setShowEvidence] = useState(false)
   const [evidenceText, setEvidenceText] = useState('')
 
@@ -90,7 +112,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
     transition,
     isDragging: isSortableDragging,
   } = useSortable({
-    id:       note.id,
+    id: note.id,
     // Only the recipient may drag — to reorder their own column or move
     // a note into / out of the Done zone. Everyone else's notes are locked.
     disabled: !note.can_mark_done,
@@ -98,16 +120,21 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
 
   // KEEP dnd-kit transform/transition inline — cannot be expressed as static Tailwind
   const style = {
-    transform:  CSS.Transform.toString(transform),
+    transform: CSS.Transform.toString(transform),
     transition,
-    opacity:    isSortableDragging ? 0.35 : 1,
-    rotate:     isDragging ? '1.5deg' : undefined,
+    opacity: isSortableDragging ? 0.35 : 1,
+    rotate: isDragging ? '1.5deg' : undefined,
   }
 
   const typeStyle = TYPE_STYLES[note.note_type]
-  const isLocked  = note.done
+  const isLocked = note.done
 
   function handleMarkDone() {
+    // Evidence is required before a note can move to Done.
+    if (evidence.length === 0) {
+      triggerNeedsEvidence()
+      return
+    }
     startTransition(async () => {
       await setNoteDone(note.id, true)
     })
@@ -147,12 +174,22 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
     setEvidenceText('')
     startTransition(async () => {
       const row = await addEvidence(note.id, text)
-      if (row) setEvidence(prev => [...prev, row as NoteEvidence])
+      if (row) {
+        setEvidence(prev => {
+          const next = [...prev, row as NoteEvidence]
+          onEvidenceChange?.(note.id, next)
+          return next
+        })
+      }
     })
   }
 
   function handleDeleteEvidence(id: string) {
-    setEvidence(prev => prev.filter(e => e.id !== id))
+    setEvidence(prev => {
+      const next = prev.filter(e => e.id !== id)
+      onEvidenceChange?.(note.id, next)
+      return next
+    })
     startTransition(async () => {
       await deleteEvidence(id)
     })
@@ -177,11 +214,13 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
     <div
       ref={setNodeRef}
       style={style}
+      onAnimationEnd={() => setShake(false)}
       className={cn(
-        'relative rounded-[6px] border px-[10px] py-[9px] select-none',
+        'relative rounded-[6px] border px-2.5 py-[9px] select-none',
         isLocked
           ? 'bg-muted border-border cursor-default'
           : cn(TYPE_BG_BORDER[note.note_type], 'cursor-grab'),
+        shake && 'animate-shake ring-2 ring-[#C0392B]/60',
       )}
       {...attributes}
       {...listeners}
@@ -196,7 +235,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
 
       {/* Content */}
       <p className={cn(
-        'text-[12px] leading-[1.5] m-0 pr-[10px] break-words',
+        'text-xs leading-[1.5] m-0 pr-2.5 break-words',
         note.tags.length > 0 ? 'mb-[6px]' : 'mb-0',
         isLocked
           ? 'text-muted-foreground/70 line-through'
@@ -207,12 +246,12 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
 
       {/* Tags */}
       {note.tags.length > 0 && !isLocked && (
-        <div className="flex flex-wrap gap-[3px] mb-[6px]">
+        <div className="flex flex-wrap gap-0.5 mb-1.5">
           {note.tags.map(tag => (
             <span
               key={tag}
               className={cn(
-                'text-[10px] px-[6px] py-[1px] rounded-[20px] bg-black/[.07] font-mono',
+                'text-xs px-1.5 py-px rounded-[20px] bg-black/[.07] font-mono',
                 TYPE_TEXT[note.note_type],
               )}
             >
@@ -224,7 +263,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
 
       {/* Done badge */}
       {isLocked && (
-        <div className="inline-flex items-center gap-[3px] text-[10px] px-[6px] py-[1px] rounded-[3px] bg-[#E1F5EE] text-[#0F6E56] mb-[6px] font-mono">
+        <div className="inline-flex items-center gap-[3px] text-xs px-1.5 py-px rounded-[3px] bg-[#E1F5EE] text-[#0F6E56] mb-[6px] font-mono">
           <i className="ti ti-check text-[9px]" aria-hidden="true" /> Done
         </div>
       )}
@@ -232,7 +271,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
       {/* Footer */}
       <div className="flex items-center justify-between mt-[4px]">
         <span className={cn(
-          'text-[10px] flex items-center gap-[4px] opacity-[.6] font-mono',
+          'text-xs flex items-center gap-[4px] opacity-[.6] font-mono',
           isLocked ? 'text-muted-foreground/70' : TYPE_TEXT[note.note_type],
         )}>
           {typeof rank === 'number' && (
@@ -253,7 +292,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
             aria-label={voted ? 'Remove your vote' : 'Give +1'}
             title={voted ? 'Remove your vote' : 'Agree (+1)'}
             className={cn(
-              'flex items-center gap-[3px] text-[10px] px-[6px] py-[1px] rounded-[20px] border font-mono transition-colors',
+              'flex items-center gap-[3px] text-sm px-1.5 py-px rounded-[20px] border font-mono transition-colors',
               voted
                 ? 'bg-primary/15 border-primary/40 text-primary'
                 : 'bg-black/[.05] border-transparent text-muted-foreground hover:bg-black/[.1]',
@@ -273,7 +312,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
               spin={saving}
             />
           )}
-          {note.can_mark_done && !note.done && (
+          {note.can_mark_done && !note.done && !inPriorityLane && (
             <ActionBtn
               icon="ti-check"
               label="Mark done"
@@ -321,7 +360,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
           <button
             onClick={() => setShowEvidence(v => !v)}
             className={cn(
-              'flex items-center gap-[4px] text-[10px] font-mono opacity-70 hover:opacity-100',
+              'flex items-center gap-[4px] text-xs font-mono opacity-70 hover:opacity-100',
               isLocked ? 'text-muted-foreground/70' : TYPE_TEXT[note.note_type],
             )}
           >
@@ -333,7 +372,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
           {showEvidence && (
             <div className="mt-[5px] flex flex-col gap-[4px]">
               {evidence.map(ev => (
-                <div key={ev.id} className="flex items-start gap-[5px] bg-black/[.04] rounded-[4px] px-[6px] py-[4px]">
+                <div key={ev.id} className="flex items-start gap-[5px] bg-black/[.04] rounded-[4px] px-1.5 py-[4px]">
                   <i className="ti ti-circle-check text-[11px] text-[#0F6E56] mt-[1px] shrink-0" aria-hidden="true" />
                   <span className="flex-1 text-[11px] text-foreground/80 break-words whitespace-pre-wrap">{renderEvidence(ev.content)}</span>
                   <span className="text-[9px] text-muted-foreground/70 font-mono shrink-0">{formatNoteDate(ev.created_at)}</span>
@@ -349,27 +388,40 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
                 </div>
               ))}
               {evidence.length === 0 && (
-                <p className="text-[10px] text-muted-foreground m-0">No evidence yet — add proof you acted on this.</p>
+                <p className="text-sm text-muted-foreground m-0">
+                  No proof yet — add evidence before you can mark this done.
+                </p>
               )}
               {note.can_mark_done && (
-                <div className="flex gap-[4px] mt-[2px]">
-                  <input
+                <div className="mt-[2px] flex flex-col gap-[4px]">
+                  <textarea
                     value={evidenceText}
                     onChange={e => setEvidenceText(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleAddEvidence()}
-                    placeholder="Add evidence or a link…"
-                    className="flex-1 text-[11px] px-[6px] py-[4px] border border-border rounded-[4px] bg-background text-foreground"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleAddEvidence()
+                      }
+                    }}
+                    placeholder="Describe what you did and paste any links or proof…"
+                    rows={2}
+                    className="w-full text-[11px] px-[7px] py-1 border border-border rounded-[4px] bg-background text-foreground resize-none font-[inherit] leading-[1.5]"
                   />
-                  <button
-                    onClick={handleAddEvidence}
-                    disabled={!evidenceText.trim() || isPending}
-                    className={cn(
-                      'text-[11px] px-[8px] rounded-[4px] bg-primary text-white',
-                      (!evidenceText.trim() || isPending) && 'opacity-50 cursor-not-allowed',
-                    )}
-                  >
-                    Add
-                  </button>
+                  <div className="flex items-center justify-between gap-[6px]">
+                    <span className="min-w-0 truncate text-[9px] text-muted-foreground/70 font-mono whitespace-nowrap">
+                      ⇧↵ new line
+                    </span>
+                    <button
+                      onClick={handleAddEvidence}
+                      disabled={!evidenceText.trim() || isPending}
+                      className={cn(
+                        'shrink-0 whitespace-nowrap text-[11px] px-2.5 py-[3px] rounded-[4px] bg-primary text-white',
+                        (!evidenceText.trim() || isPending) && 'opacity-50 cursor-not-allowed',
+                      )}
+                    >
+                      Add proof
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -388,12 +440,12 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
             onChange={e => setReportText(e.target.value)}
             placeholder="Briefly describe the issue..."
             rows={2}
-            className="w-full text-[11px] px-[7px] py-[5px] border border-border rounded-[4px] bg-background text-foreground resize-none font-[inherit]"
+            className="w-full text-[11px] px-[7px] py-1 border border-border rounded-[4px] bg-background text-foreground resize-none font-[inherit]"
           />
           <div className="flex gap-[4px] mt-[4px]">
             <button
               onClick={() => setShowReport(false)}
-              className="flex-1 text-[10px] py-[3px] border border-border rounded-[4px] bg-transparent cursor-pointer text-muted-foreground"
+              className="flex-1 text-sm py-[3px] border border-border rounded-[4px] bg-transparent cursor-pointer text-muted-foreground"
             >
               Cancel
             </button>
@@ -401,7 +453,7 @@ export function NoteCard({ note, currentUserId, isDragging = false, rank, onSetP
               onClick={handleReport}
               disabled={!reportText.trim() || isPending}
               className={cn(
-                'flex-1 text-[10px] py-[3px] border-0 rounded-[4px] bg-[#854F0B] text-white',
+                'flex-1 text-sm py-[3px] border-0 rounded-[4px] bg-[#854F0B] text-white',
                 reportText.trim() ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-50',
               )}
             >
@@ -426,7 +478,7 @@ function ActionBtn({
       aria-label={label}
       title={label}
       className={cn(
-        'w-[20px] h-[20px] rounded-[4px] border-0 bg-transparent flex items-center justify-center text-[12px] p-0 transition-opacity duration-150',
+        'w-[20px] h-[20px] rounded-[4px] border-0 bg-transparent flex items-center justify-center text-xs p-0 transition-opacity duration-150',
         spin ? 'opacity-100 cursor-default' : disabled ? 'cursor-not-allowed opacity-30' : 'cursor-pointer opacity-50',
       )}
       style={{ color }}

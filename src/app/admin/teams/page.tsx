@@ -1,7 +1,7 @@
 // src/app/admin/teams/page.tsx
-import { redirect }        from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
-import { TeamBuilder }     from '@/components/admin/TeamBuilder'
+import { TeamBuilder } from '@/components/admin/TeamBuilder'
 
 export default async function AdminTeamsPage() {
   const supabase = createServerClient()
@@ -16,11 +16,11 @@ export default async function AdminTeamsPage() {
     .eq('profile_id', user.id)
 
   const adminMembership = (memberships ?? []).find((m: any) => m.role === 'admin')
-  const anyMembership   = adminMembership ?? (memberships ?? [])[0]
+  const anyMembership = adminMembership ?? (memberships ?? [])[0]
   if (!anyMembership) redirect('/')
 
-  const workspace  = (anyMembership as any).workspaces
-  const isWsAdmin  = !!adminMembership
+  const workspace = (anyMembership as any).workspaces
+  const isWsAdmin = !!adminMembership
 
   // Teams the user LEADS (team-level role).
   const { data: ledRows } = await supabase
@@ -69,9 +69,9 @@ export default async function AdminTeamsPage() {
 
   return (
     <div className="mx-auto max-w-[800px] px-4 py-6">
-      <div className="flex items-center gap-[10px] mb-6">
+      <div className="flex items-center gap-2.5 mb-6">
         <h1 className="text-[20px] font-medium m-0">Team management</h1>
-        <span className="text-[12px] px-2 py-0.5 rounded-[20px] bg-muted border border-border text-muted-foreground">
+        <span className="text-xs px-2 py-0.5 rounded-[20px] bg-muted border border-border text-muted-foreground">
           {workspace.name}
         </span>
         {!isWsAdmin && (
@@ -88,7 +88,7 @@ export default async function AdminTeamsPage() {
         adminProfileIds={adminProfileIds}
         candidates={(allProfiles ?? []).map((p: any) => ({
           profile_id: p.id,
-          profile:    p,
+          profile: p,
         }))}
       />
     </div>

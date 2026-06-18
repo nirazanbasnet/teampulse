@@ -1,8 +1,45 @@
 // src/server/actions/teams.ts
 'use server'
 
-import { revalidatePath }     from 'next/cache'
-import { createServerClient } from '@/lib/supabase/server'
+import { revalidatePath }      from 'next/cache'
+import { createServerClient }  from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+
+// Authorize a team-membership management action and return the team's
+// workspace_id. The caller must be a workspace admin of the team's
+// workspace OR a lead of the team itself — the same rule the RLS
+// policies encode. We verify it here (service role) so the privileged
+// write below can't be blocked by policy drift on team_members.
+async function assertCanManageTeam(
+  service: ReturnType<typeof createServiceClient>,
+  userId: string,
+  teamId: string,
+): Promise<string> {
+  const { data: team } = await service
+    .from('teams')
+    .select('workspace_id')
+    .eq('id', teamId)
+    .single()
+  if (!team) throw new Error('Team not found.')
+
+  const [{ data: adminRow }, { data: leadRow }] = await Promise.all([
+    service.from('workspace_members').select('id')
+      .eq('workspace_id', team.workspace_id)
+      .eq('profile_id', userId)
+      .eq('role', 'admin')
+      .maybeSingle(),
+    service.from('team_members').select('id')
+      .eq('team_id', teamId)
+      .eq('profile_id', userId)
+      .eq('role', 'lead')
+      .maybeSingle(),
+  ])
+
+  if (!adminRow && !leadRow) {
+    throw new Error("You must be a workspace admin or this team's lead to manage its members.")
+  }
+  return team.workspace_id as string
+}
 
 export async function createTeam({ workspaceId, name }: { workspaceId: string; name: string }) {
   const supabase = createServerClient()
@@ -57,28 +94,22 @@ export async function addTeamMember({ teamId, profileId }: { teamId: string; pro
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  // The team's workspace — needed so we can also grant workspace membership.
-  const { data: team } = await supabase
-    .from('teams')
-    .select('workspace_id')
-    .eq('id', teamId)
-    .single()
-
-  if (!team) throw new Error('Team not found.')
+  const service     = createServiceClient()
+  const workspaceId = await assertCanManageTeam(service, user.id, teamId)
 
   // A person must be a workspace member to satisfy RLS on teams/notes (i.e.
   // to actually see the board). Adding them to a team implies workspace
   // membership, so ensure it exists first. No-op if they're already a member.
-  const { error: wsError } = await supabase
+  const { error: wsError } = await service
     .from('workspace_members')
     .upsert(
-      { workspace_id: team.workspace_id, profile_id: profileId, role: 'member', invited_by: user.id },
+      { workspace_id: workspaceId, profile_id: profileId, role: 'member', invited_by: user.id },
       { onConflict: 'workspace_id,profile_id', ignoreDuplicates: true },
     )
 
   if (wsError) throw new Error(`Failed to add to workspace: ${wsError.message}`)
 
-  const { error } = await supabase
+  const { error } = await service
     .from('team_members')
     .upsert(
       { team_id: teamId, profile_id: profileId, added_by: user.id },
@@ -86,7 +117,8 @@ export async function addTeamMember({ teamId, profileId }: { teamId: string; pro
     )
 
   if (error) throw new Error(`Failed to add member: ${error.message}`)
-  revalidatePath('/admin/teams')
+  // No revalidatePath here — TeamBuilder updates its roster optimistically,
+  // so we avoid an RSC refresh that would reset the selected team / scroll.
   return { success: true }
 }
 
@@ -97,15 +129,17 @@ export async function setTeamRole(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  // RLS: only a workspace admin or a lead of this team may update.
-  const { error } = await supabase
+  const service = createServiceClient()
+  await assertCanManageTeam(service, user.id, teamId)
+
+  const { error } = await service
     .from('team_members')
     .update({ role })
     .eq('team_id', teamId)
     .eq('profile_id', profileId)
 
   if (error) throw new Error(`Failed to update role: ${error.message}`)
-  revalidatePath('/admin/teams')
+  // Optimistic UI in TeamBuilder — skip the refresh (see addTeamMember).
   return { success: true }
 }
 
@@ -114,13 +148,16 @@ export async function removeTeamMember({ teamId, profileId }: { teamId: string; 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { error } = await supabase
+  const service = createServiceClient()
+  await assertCanManageTeam(service, user.id, teamId)
+
+  const { error } = await service
     .from('team_members')
     .delete()
     .eq('team_id', teamId)
     .eq('profile_id', profileId)
 
   if (error) throw new Error(`Failed to remove member: ${error.message}`)
-  revalidatePath('/admin/teams')
+  // Optimistic UI in TeamBuilder — skip the refresh (see addTeamMember).
   return { success: true }
 }

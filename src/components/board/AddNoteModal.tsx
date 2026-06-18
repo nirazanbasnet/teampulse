@@ -122,12 +122,12 @@ export function AddNoteModal({
         aria-modal="true"
         aria-label={`Add anonymous feedback for ${recipientName}`}
       >
-        <div className="flex items-center gap-[10px] mb-[18px]">
+        <div className="flex items-center gap-2.5 mb-[18px]">
           <div className="flex-1">
             <h2 className="text-[15px] font-medium m-0">
               Feedback for {recipientName}
             </h2>
-            <p className="text-[12px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Posted anonymously — your name is never shown
             </p>
           </div>
@@ -142,7 +142,7 @@ export function AddNoteModal({
 
         {/* Note type selector */}
         <div className="mb-[14px]">
-          <p className="text-[12px] text-muted-foreground mb-[6px]">
+          <p className="text-xs text-muted-foreground mb-[6px]">
             Note type
           </p>
           <div className="flex gap-[6px]">
@@ -152,7 +152,7 @@ export function AddNoteModal({
                 onClick={() => setNoteType(t.key)}
                 aria-pressed={noteType === t.key}
                 className={cn(
-                  'flex-1 py-[7px] px-1 rounded-lg text-[12px] text-center cursor-pointer',
+                  'flex-1 py-[7px] px-1 rounded-lg text-xs text-center cursor-pointer',
                   noteType === t.key
                     ? cn(
                       'border-2 border-current font-medium',
@@ -171,7 +171,7 @@ export function AddNoteModal({
 
         {/* Tag selector */}
         <div className="mb-[14px]">
-          <p className="text-[12px] text-muted-foreground mb-[6px]">
+          <p className="text-xs text-muted-foreground mb-[6px]">
             Categories (optional)
           </p>
           <div className="flex flex-wrap gap-[5px]">
@@ -181,7 +181,7 @@ export function AddNoteModal({
                 onClick={() => toggleTag(tag)}
                 aria-pressed={tags.includes(tag)}
                 className={cn(
-                  'py-[3px] px-[10px] rounded-[20px] border border-border text-[12px] cursor-pointer transition-all duration-150',
+                  'py-[3px] px-2.5 rounded-[20px] border border-border text-xs cursor-pointer transition-all duration-150',
                   tags.includes(tag)
                     ? 'bg-foreground text-background'
                     : 'bg-transparent text-muted-foreground',
@@ -201,7 +201,7 @@ export function AddNoteModal({
           placeholder="Write your feedback... (Cmd+Enter to submit)"
           maxLength={CHAR_LIMIT}
           rows={4}
-          className="w-full resize-y text-[13px] py-[10px] px-3 border border-border rounded-lg bg-muted text-foreground font-[inherit] leading-[1.5]"
+          className="w-full resize-y text-[13px] py-2.5 px-3 border border-border rounded-lg bg-muted text-foreground font-[inherit] leading-[1.5]"
         />
 
         <div className="flex flex-wrap justify-between items-center mt-[6px] mb-[14px]">

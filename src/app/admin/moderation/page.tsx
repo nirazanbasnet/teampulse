@@ -1,12 +1,12 @@
 // src/app/admin/moderation/page.tsx
-import { redirect }           from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { ModerationQueue }    from '@/components/admin/ModerationQueue'
+import { ModerationQueue } from '@/components/admin/ModerationQueue'
 
 export default async function ModerationPage() {
-  const supabase        = createServerClient()
-  const serviceClient   = createServiceClient()
+  const supabase = createServerClient()
+  const serviceClient = createServiceClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
@@ -36,10 +36,10 @@ export default async function ModerationPage() {
 
   return (
     <div className="mx-auto max-w-[760px] px-4 py-6">
-      <div className="flex items-center gap-[10px] mb-6">
+      <div className="flex items-center gap-2.5 mb-6">
         <h1 className="text-[20px] font-medium m-0">Content moderation</h1>
         {(reports?.length ?? 0) > 0 && (
-          <span className="text-[12px] px-2 py-0.5 rounded-[20px] bg-[#FAECE7] text-[#993C1D] font-mono">
+          <span className="text-xs px-2 py-0.5 rounded-[20px] bg-[#FAECE7] text-[#993C1D] font-mono">
             {reports?.length} pending
           </span>
         )}

@@ -3,15 +3,15 @@
 
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { NoteCard }   from './NoteCard'
-import { Avatar }     from '@/components/shared/Avatar'
+import { NoteCard } from './NoteCard'
+import { Avatar } from '@/components/shared/Avatar'
 import type { BoardColumn as BoardColumnType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 interface BoardColumnProps {
-  column:        BoardColumnType
+  column: BoardColumnType
   currentUserId: string
-  onAddNote:     () => void
+  onAddNote: () => void
 }
 
 export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnProps) {
@@ -24,7 +24,7 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
   // even appear placeable) on someone else's column.
   const { setNodeRef, isOver } = useDroppable({ id: member.profile_id, disabled: true })
 
-  const doneCount  = notes.filter(n => n.done).length
+  const doneCount = notes.filter(n => n.done).length
   const totalCount = notes.length
 
   return (
@@ -40,7 +40,7 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
       {/* Column header */}
       <div
         className={cn(
-          'px-3 pt-[10px] pb-[9px] border-b border-border flex items-center gap-[9px] rounded-t-[12px]',
+          'px-3 pt-2.5 pb-[9px] border-b border-border flex items-center gap-[9px] rounded-t-[12px]',
           isMyColumn && 'bg-muted',
         )}
       >
@@ -51,12 +51,12 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
               {profile.full_name.split(' ')[0]}
             </h4>
             {isMyColumn && (
-              <span className="text-[10px] px-[6px] py-[1px] rounded-[20px] bg-secondary text-muted-foreground/70 border border-border shrink-0">
+              <span className="text-sm px-1.5 py-px rounded-[20px] bg-secondary text-muted-foreground/70 border border-border shrink-0">
                 You
               </span>
             )}
             {(member as any).role === 'lead' && (
-              <span className="text-[10px] px-[6px] py-[1px] rounded-[20px] bg-[#FAEEDA] text-[#854F0B] border border-[#F5E0B8] shrink-0">
+              <span className="text-sm px-1.5 py-px rounded-[20px] bg-[#FAEEDA] text-[#854F0B] border border-[#F5E0B8] shrink-0">
                 Lead
               </span>
             )}
@@ -110,7 +110,7 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
         ) : (
           <button
             onClick={onAddNote}
-            className="flex items-center justify-center gap-[5px] p-[7px] border border-dashed border-border rounded-[6px] text-[12px] text-muted-foreground/70 bg-transparent cursor-pointer w-full transition-all duration-150 hover:border-primary hover:text-primary hover:bg-accent"
+            className="flex items-center justify-center gap-[5px] p-[7px] border border-dashed border-border rounded-[6px] text-xs text-muted-foreground/70 bg-transparent cursor-pointer w-full transition-all duration-150 hover:border-primary hover:text-primary hover:bg-accent"
           >
             <i className="ti ti-plus text-[13px]" aria-hidden="true" />
             Add feedback

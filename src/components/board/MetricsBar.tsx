@@ -2,10 +2,10 @@
 'use client'
 
 interface MetricsBarProps {
-  totalNotes:  number
-  doneNotes:   number
+  totalNotes: number
+  doneNotes: number
   memberCount: number
-  cycleName:   string | null
+  cycleName: string | null
 }
 
 export function MetricsBar({ totalNotes, doneNotes, memberCount, cycleName }: MetricsBarProps) {
@@ -13,16 +13,16 @@ export function MetricsBar({ totalNotes, doneNotes, memberCount, cycleName }: Me
 
   const stats = [
     { label: 'Notes this cycle', value: totalNotes, icon: 'ti-note' },
-    { label: 'Done',             value: doneNotes,  icon: 'ti-check' },
-    { label: 'Completion',       value: `${pct}%`,  icon: 'ti-chart-bar' },
-    { label: 'Members',          value: memberCount, icon: 'ti-users' },
+    { label: 'Done', value: doneNotes, icon: 'ti-check' },
+    { label: 'Completion', value: `${pct}%`, icon: 'ti-chart-bar' },
+    { label: 'Members', value: memberCount, icon: 'ti-users' },
   ]
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-muted overflow-x-auto">
       {cycleName && (
         <>
-          <div className="flex items-center gap-[5px] px-[10px] py-[3px] rounded-[20px] bg-accent text-accent-foreground text-[11px] font-mono shrink-0">
+          <div className="flex items-center gap-[5px] px-2.5 py-[3px] rounded-[20px] bg-accent text-accent-foreground text-[11px] font-mono shrink-0">
             <span className="w-[5px] h-[5px] rounded-full bg-primary inline-block" />
             {cycleName} · Active
           </div>

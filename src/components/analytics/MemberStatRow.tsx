@@ -1,7 +1,7 @@
 // src/components/analytics/MemberStatRow.tsx
 'use client'
 
-import { Avatar }        from '@/components/shared/Avatar'
+import { Avatar } from '@/components/shared/Avatar'
 import type { MemberStat } from '@/lib/types'
 
 interface MemberStatRowProps {
@@ -15,7 +15,7 @@ export function MemberStatRow({ stat, isMe }: MemberStatRowProps) {
 
   return (
     <div className={[
-      'flex items-center gap-[10px] px-[10px] py-2 rounded-lg border',
+      'flex items-center gap-2.5 px-2.5 py-2 rounded-lg border',
       isMe
         ? 'border-[#5DCAA5] bg-[#E1F5EE]'
         : 'border-border bg-background',
@@ -28,7 +28,7 @@ export function MemberStatRow({ stat, isMe }: MemberStatRowProps) {
             {profile.full_name}
           </span>
           {isMe && (
-            <span className="text-[10px] px-[6px] py-px rounded-[20px] bg-black/[.07] text-[#0F6E56] font-mono">
+            <span className="text-xs px-1.5 py-px rounded-[20px] bg-black/[.07] text-[#0F6E56] font-mono">
               you
             </span>
           )}
@@ -38,11 +38,11 @@ export function MemberStatRow({ stat, isMe }: MemberStatRowProps) {
           isMe ? 'bg-[rgba(29,158,117,0.2)]' : 'bg-muted',
         ].join(' ')}>
           <div style={{
-            width:        `${pct}%`,
-            height:       '100%',
-            background:   isMe ? '#1D9E75' : '#378ADD',
+            width: `${pct}%`,
+            height: '100%',
+            background: isMe ? '#1D9E75' : '#378ADD',
             borderRadius: 2,
-            transition:   'width .6s cubic-bezier(.4,0,.2,1)',
+            transition: 'width .6s cubic-bezier(.4,0,.2,1)',
           }} />
         </div>
       </div>

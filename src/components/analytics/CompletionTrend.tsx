@@ -6,9 +6,9 @@ import {
 } from 'recharts'
 
 interface TrendPoint {
-  cycle:      string
+  cycle: string
   completion: number
-  total:      number
+  total: number
 }
 
 interface CompletionTrendProps {
@@ -18,7 +18,7 @@ interface CompletionTrendProps {
 export function CompletionTrend({ data }: CompletionTrendProps) {
   if (data.length < 2) {
     return (
-      <div className="h-[120px] flex items-center justify-center text-muted-foreground/70 text-[12px]">
+      <div className="h-[120px] flex items-center justify-center text-muted-foreground/70 text-xs">
         Need at least 2 cycles to show trend
       </div>
     )
@@ -48,11 +48,11 @@ export function CompletionTrend({ data }: CompletionTrendProps) {
           />
           <Tooltip
             contentStyle={{
-              background:   'var(--color-background-primary)',
-              border:       '0.5px solid var(--color-border-secondary)',
+              background: 'var(--color-background-primary)',
+              border: '0.5px solid var(--color-border-secondary)',
               borderRadius: 8,
-              fontSize:     12,
-              color:        'var(--color-text-primary)',
+              fontSize: 12,
+              color: 'var(--color-text-primary)',
             }}
             formatter={(v: number) => [`${v}%`, 'Completion']}
           />

@@ -2,10 +2,10 @@
 // Feedback activity log — visible to workspace admins (all teams) and team
 // leads (their teams). Shows the ACTUAL author → recipient, content, and
 // date for every note. Uses the service role to resolve author identity.
-import { redirect }            from 'next/navigation'
-import { createServerClient }  from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { createServerClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { Avatar }              from '@/components/shared/Avatar'
+import { Avatar } from '@/components/shared/Avatar'
 
 export const revalidate = 0
 
@@ -15,7 +15,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 export default async function ActivityPage() {
   const supabase = createServerClient()
-  const service  = createServiceClient()
+  const service = createServiceClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
@@ -26,10 +26,10 @@ export default async function ActivityPage() {
     .select('workspace_id, role, workspaces(id, name)')
     .eq('profile_id', user.id)
   const adminMembership = (memberships ?? []).find((m: any) => m.role === 'admin')
-  const anyMembership   = adminMembership ?? (memberships ?? [])[0]
+  const anyMembership = adminMembership ?? (memberships ?? [])[0]
   if (!anyMembership) redirect('/')
   const workspace = (anyMembership as any).workspaces
-  const isAdmin   = !!adminMembership
+  const isAdmin = !!adminMembership
 
   // Teams the user leads.
   const { data: ledRows } = await supabase
@@ -49,11 +49,11 @@ export default async function ActivityPage() {
   // All notes for those teams, newest first (service role → includes author).
   const { data: notes } = visibleTeamIds.length
     ? await service
-        .from('notes_admin')
-        .select('id, team_id, content, note_type, tags, created_at, done, author_name, author_email, recipient_name')
-        .in('team_id', visibleTeamIds)
-        .order('created_at', { ascending: false })
-        .limit(300)
+      .from('notes_admin')
+      .select('id, team_id, content, note_type, tags, created_at, done, author_name, author_email, recipient_name')
+      .in('team_id', visibleTeamIds)
+      .order('created_at', { ascending: false })
+      .limit(300)
     : { data: [] }
 
   // Group by calendar day.
@@ -66,9 +66,9 @@ export default async function ActivityPage() {
 
   return (
     <div className="mx-auto max-w-[820px] px-4 py-6">
-      <div className="flex items-center gap-[10px] mb-1">
+      <div className="flex items-center gap-2.5 mb-1">
         <h1 className="text-[20px] font-medium m-0">Activity log</h1>
-        <span className="text-[12px] px-2 py-0.5 rounded-[20px] bg-muted border border-border text-muted-foreground">
+        <span className="text-xs px-2 py-0.5 rounded-[20px] bg-muted border border-border text-muted-foreground">
           {workspace.name}
         </span>
         {!isAdmin && (
@@ -77,13 +77,13 @@ export default async function ActivityPage() {
           </span>
         )}
       </div>
-      <p className="text-[12px] text-muted-foreground mb-5">
+      <p className="text-xs text-muted-foreground mb-5">
         Who sent what, to whom, and when. Author identity is visible here to {isAdmin ? 'workspace admins' : 'team leads'} — handle responsibly.
       </p>
 
       {(notes ?? []).length === 0 ? (
         <div className="border border-dashed border-border rounded-[12px] p-12 text-center text-muted-foreground/70 text-sm">
-          <i className="ti ti-history block text-[32px] mb-[10px] opacity-40" aria-hidden="true" />
+          <i className="ti ti-history block text-[32px] mb-2.5 opacity-40" aria-hidden="true" />
           No feedback activity yet.
         </div>
       ) : (
@@ -95,13 +95,13 @@ export default async function ActivityPage() {
               </div>
               <div className="flex flex-col gap-2">
                 {items.map((n: any) => (
-                  <div key={n.id} className="border border-border rounded-[10px] bg-background p-[12px]">
+                  <div key={n.id} className="border border-border rounded-2.5 bg-background p-[12px]">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <Avatar name={n.author_name} size={22} />
-                      <span className="text-[12px] font-medium text-foreground">{n.author_name}</span>
+                      <span className="text-xs font-medium text-foreground">{n.author_name}</span>
                       <span className="text-[11px] text-muted-foreground">{n.author_email}</span>
-                      <i className="ti ti-arrow-right text-[12px] text-muted-foreground/70" aria-hidden="true" />
-                      <span className="text-[12px] font-medium text-foreground">{n.recipient_name}</span>
+                      <i className="ti ti-arrow-right text-xs text-muted-foreground/70" aria-hidden="true" />
+                      <span className="text-xs font-medium text-foreground">{n.recipient_name}</span>
                       <span className="ml-auto text-[11px] text-muted-foreground font-mono">
                         {new Date(n.created_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                       </span>
@@ -114,20 +114,20 @@ export default async function ActivityPage() {
                     </div>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span
-                        className="text-[10px] px-[7px] py-px rounded-[20px] font-mono"
+                        className="text-xs px-2 py-px rounded-[20px] font-mono"
                         style={{ background: `${TYPE_COLORS[n.note_type] ?? '#999'}22`, color: TYPE_COLORS[n.note_type] ?? '#666' }}
                       >
                         {n.note_type}
                       </span>
                       {(n.tags ?? []).map((tag: string) => (
-                        <span key={tag} className="text-[10px] px-[7px] py-px rounded-[20px] bg-muted text-muted-foreground font-mono">{tag}</span>
+                        <span key={tag} className="text-xs px-2 py-px rounded-[20px] bg-muted text-muted-foreground font-mono">{tag}</span>
                       ))}
                       {n.done && (
-                        <span className="text-[10px] px-[7px] py-px rounded-[20px] bg-[#E1F5EE] text-[#0F6E56] font-mono inline-flex items-center gap-1">
-                          <i className="ti ti-check text-[10px]" aria-hidden="true" /> actioned
+                        <span className="text-xs px-2 py-px rounded-[20px] bg-[#E1F5EE] text-[#0F6E56] font-mono inline-flex items-center gap-1">
+                          <i className="ti ti-check text-xs" aria-hidden="true" /> actioned
                         </span>
                       )}
-                      <span className="ml-auto text-[10px] text-muted-foreground/70 font-mono">{teamName.get(n.team_id) ?? ''}</span>
+                      <span className="ml-auto text-xs text-muted-foreground/70 font-mono">{teamName.get(n.team_id) ?? ''}</span>
                     </div>
                   </div>
                 ))}

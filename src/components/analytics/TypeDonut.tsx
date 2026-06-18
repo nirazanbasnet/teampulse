@@ -5,24 +5,24 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import type { NoteType } from '@/lib/types'
 
 interface TypeDonutProps {
-  data:  Record<NoteType, number>
+  data: Record<NoteType, number>
   total: number
 }
 
 const TYPE_CONFIG: Record<NoteType, { label: string; color: string }> = {
-  general:  { label: 'General',  color: '#EAB308' },
+  general: { label: 'General', color: '#EAB308' },
   strength: { label: 'Strength', color: '#1D9E75' },
-  growth:   { label: 'Growth',   color: '#378ADD' },
+  growth: { label: 'Growth', color: '#378ADD' },
 }
 
 export function TypeDonut({ data, total }: TypeDonutProps) {
   const chartData = (Object.entries(data) as [NoteType, number][])
     .filter(([, v]) => v > 0)
     .map(([type, count]) => ({
-      name:  TYPE_CONFIG[type].label,
+      name: TYPE_CONFIG[type].label,
       value: count,
       color: TYPE_CONFIG[type].color,
-      pct:   total > 0 ? Math.round(count / total * 100) : 0,
+      pct: total > 0 ? Math.round(count / total * 100) : 0,
     }))
 
   if (total === 0) {
@@ -54,11 +54,11 @@ export function TypeDonut({ data, total }: TypeDonutProps) {
             </Pie>
             <Tooltip
               contentStyle={{
-                background:   'var(--color-background-primary)',
-                border:       '0.5px solid var(--color-border-secondary)',
+                background: 'var(--color-background-primary)',
+                border: '0.5px solid var(--color-border-secondary)',
                 borderRadius: 8,
-                fontSize:     12,
-                color:        'var(--color-text-primary)',
+                fontSize: 12,
+                color: 'var(--color-text-primary)',
               }}
               formatter={(v: number, name: string) => [v, name]}
             />
@@ -70,13 +70,13 @@ export function TypeDonut({ data, total }: TypeDonutProps) {
         {chartData.map(d => (
           <div key={d.name} className="flex items-center gap-2">
             <span
-              className="w-[10px] h-[10px] rounded-full shrink-0"
+              className="w-2.5 h-2.5 rounded-full shrink-0"
               style={{ background: d.color }}
             />
-            <span className="text-[12px] flex-1 text-muted-foreground">
+            <span className="text-xs flex-1 text-muted-foreground">
               {d.name}
             </span>
-            <span className="text-[12px] font-medium font-mono">
+            <span className="text-xs font-medium font-mono">
               {d.value}
             </span>
             <span className="text-[11px] text-muted-foreground/70 font-mono w-8 text-right">

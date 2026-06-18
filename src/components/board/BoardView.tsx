@@ -31,31 +31,38 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 
-import { BoardColumn }      from './BoardColumn'
-import { NoteCard }         from './NoteCard'
-import { AddNoteModal }     from './AddNoteModal'
-import { MetricsBar }       from './MetricsBar'
-import { Avatar }           from '@/components/shared/Avatar'
+import { BoardColumn } from './BoardColumn'
+import { NoteCard } from './NoteCard'
+import { AddNoteModal } from './AddNoteModal'
+import { MetricsBar } from './MetricsBar'
+import { Avatar } from '@/components/shared/Avatar'
 import { useBoardRealtime } from '@/lib/hooks/use-board-realtime'
 import { reorderNotes, updateNoteState } from '@/server/actions/notes'
 import { cn } from '@/lib/utils'
 
-import type { BoardState, NoteSafe } from '@/lib/types'
+import type { BoardState, NoteSafe, NoteEvidence } from '@/lib/types'
 
 const PRIORITY_ZONE_ID = 'priority-zone'
-const DONE_ZONE_ID     = 'done-zone'
+const DONE_ZONE_ID = 'done-zone'
 
 interface BoardViewProps {
-  boardState:    BoardState
+  boardState: BoardState
   currentUserId: string
 }
 
 export function BoardView({ boardState, currentUserId }: BoardViewProps) {
   const [columns, setColumns] = useState(boardState.columns)
-  const [activeNote, setActiveNote]   = useState<NoteSafe | null>(null)
+  const [activeNote, setActiveNote] = useState<NoteSafe | null>(null)
   const [addModalFor, setAddModalFor] = useState<{ recipientId: string; recipientName: string } | null>(null)
-  const [savingIds, setSavingIds]     = useState<Set<string>>(() => new Set())
+  const [savingIds, setSavingIds] = useState<Set<string>>(() => new Set())
+  // Drives the "needs evidence" shake on a card whose drag-to-Done was blocked.
+  const [shake, setShake] = useState<{ id: string; n: number } | null>(null)
   const [, startTransition] = useTransition()
+
+  // Bump a card's shake signal so NoteCard replays the alert animation.
+  function triggerCardShake(id: string) {
+    setShake(prev => ({ id, n: (prev?.id === id ? prev.n : 0) + 1 }))
+  }
 
   // ── Realtime subscription ─────────────────────────────────
 
@@ -73,9 +80,9 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
           if (next.some(c => c.notes.some(n => n.id === note.id))) return next
           const enriched: NoteSafe = {
             ...(note as NoteSafe),
-            is_mine:       false,
+            is_mine: false,
             can_mark_done: note.recipient_id === currentUserId,
-            can_edit:      false,
+            can_edit: false,
           }
           const colIdx = next.findIndex(c => c.member.profile_id === note.recipient_id)
           if (colIdx !== -1) next[colIdx].notes.push(enriched)
@@ -96,12 +103,12 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
 
   // ── Derived lanes ─────────────────────────────────────────
 
-  const myColumn     = columns.find(c => c.isMyColumn)
+  const myColumn = columns.find(c => c.isMyColumn)
   const otherColumns = columns.filter(c => !c.isMyColumn)
-  const myProfileId  = myColumn?.member.profile_id
-  const myInbox      = (myColumn?.notes ?? []).filter(n => !n.done && !n.priority)
+  const myProfileId = myColumn?.member.profile_id
+  const myInbox = (myColumn?.notes ?? []).filter(n => !n.done && !n.priority)
   const myPriorities = (myColumn?.notes ?? []).filter(n => !n.done && n.priority)
-  const myDone       = (myColumn?.notes ?? []).filter(n => n.done)
+  const myDone = (myColumn?.notes ?? []).filter(n => n.done)
 
   // ── dnd-kit sensors ───────────────────────────────────────
 
@@ -116,6 +123,16 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
     setColumns(prev => prev.map(c =>
       c.isMyColumn
         ? { ...c, notes: c.notes.map(n => (n.id === id ? { ...n, ...patch } : n)) }
+        : c
+    ))
+  }
+
+  // Keep BoardView's copy of a note's evidence in sync with the card, so the
+  // drag-to-Done gate always sees the latest proof the recipient added.
+  function handleEvidenceChange(noteId: string, evidence: NoteEvidence[]) {
+    setColumns(prev => prev.map(c =>
+      c.isMyColumn
+        ? { ...c, notes: c.notes.map(n => (n.id === noteId ? { ...n, evidence } : n)) }
         : c
     ))
   }
@@ -137,7 +154,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
 
   function persistReorder(list: NoteSafe[], activeId: string, overId: string) {
     const oldIndex = list.findIndex(n => n.id === activeId)
-    const isZone   = overId === myProfileId || overId === DONE_ZONE_ID || overId === PRIORITY_ZONE_ID
+    const isZone = overId === myProfileId || overId === DONE_ZONE_ID || overId === PRIORITY_ZONE_ID
     const newIndex = isZone
       ? list.length - 1
       : list.findIndex(n => n.id === overId)
@@ -170,10 +187,10 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
     const note = myColumn.notes.find(n => n.id === active.id)
     if (!note) return
 
-    const overId      = over.id as string
-    const inboxIds    = new Set(myInbox.map(n => n.id))
+    const overId = over.id as string
+    const inboxIds = new Set(myInbox.map(n => n.id))
     const priorityIds = new Set(myPriorities.map(n => n.id))
-    const doneIds     = new Set(myDone.map(n => n.id))
+    const doneIds = new Set(myDone.map(n => n.id))
 
     let dest: 'inbox' | 'priority' | 'done' | null = null
     if (overId === DONE_ZONE_ID || doneIds.has(overId)) dest = 'done'
@@ -190,11 +207,17 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
       return
     }
 
+    // A note can only move to Done once the recipient has logged evidence.
+    if (dest === 'done' && (note.evidence?.length ?? 0) === 0) {
+      triggerCardShake(note.id)
+      return
+    }
+
     // Lane change — set the exact target state for the destination lane.
     const target =
-      dest === 'done'     ? { done: true } :
-      dest === 'priority' ? { done: false, priority: true } :
-                            { done: false, priority: false }
+      dest === 'done' ? { done: true } :
+        dest === 'priority' ? { done: false, priority: true } :
+          { done: false, priority: false }
     patchNoteState(note.id, target)
     startTransition(() => { updateNoteState(note.id, target) })
   }
@@ -213,7 +236,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
 
   // ── Metrics ───────────────────────────────────────────────
 
-  const allNotes  = columns.flatMap(c => c.notes)
+  const allNotes = columns.flatMap(c => c.notes)
   const doneCount = allNotes.filter(n => n.done).length
 
   return (
@@ -247,7 +270,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                       currentUserId={currentUserId}
                       onAddNote={() =>
                         setAddModalFor({
-                          recipientId:   col.member.profile_id,
+                          recipientId: col.member.profile_id,
                           recipientName: col.member.profile.full_name,
                         })
                       }
@@ -269,14 +292,16 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                   currentUserId={currentUserId}
                   onSetPriority={handleSetPriority}
                   savingIds={savingIds}
+                  shake={shake}
+                  onEvidenceChange={handleEvidenceChange}
                   accent
                   header={
-                    <div className="px-3 pt-[10px] pb-[9px] border-b border-border flex items-center gap-[9px] bg-accent/50 rounded-t-[12px]">
+                    <div className="px-3 pt-2.5 pb-[9px] border-b border-border flex items-center gap-[9px] bg-accent/50 rounded-t-[12px]">
                       <Avatar name={myColumn.member.profile.full_name} size={30} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-[5px]">
                           <h4 className="text-[13px] font-medium m-0">You</h4>
-                          <span className="text-[10px] px-[6px] py-[1px] rounded-[20px] bg-primary/15 text-primary border border-primary/30 shrink-0">
+                          <span className="text-xs px-1.5 py-px rounded-[20px] bg-primary/15 text-primary border border-primary/30 shrink-0">
                             Received
                           </span>
                         </div>
@@ -298,9 +323,12 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                   currentUserId={currentUserId}
                   onSetPriority={handleSetPriority}
                   savingIds={savingIds}
+                  shake={shake}
+                  onEvidenceChange={handleEvidenceChange}
+                  priorityLane
                   ranked
                   header={
-                    <div className="px-3 pt-[10px] pb-[9px] border-b border-border flex items-center gap-[9px] bg-[#FAEEDA] rounded-t-[12px]">
+                    <div className="px-3 pt-2.5 pb-[9px] border-b border-border flex items-center gap-[9px] bg-[#FAEEDA] rounded-t-[12px]">
                       <div className="w-[30px] h-[30px] rounded-full bg-[#F5E0B8] text-[#854F0B] flex items-center justify-center shrink-0">
                         <i className="ti ti-flag text-[16px]" aria-hidden="true" />
                       </div>
@@ -323,7 +351,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                   notes={myDone}
                   currentUserId={currentUserId}
                   header={
-                    <div className="px-3 pt-[10px] pb-[9px] border-b border-border flex items-center gap-[9px] bg-muted rounded-t-[12px]">
+                    <div className="px-3 pt-2.5 pb-[9px] border-b border-border flex items-center gap-[9px] bg-muted rounded-t-[12px]">
                       <div className="w-[30px] h-[30px] rounded-full bg-[#E1F5EE] text-[#0F6E56] flex items-center justify-center shrink-0">
                         <i className="ti ti-check text-[16px]" aria-hidden="true" />
                       </div>
@@ -371,17 +399,21 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
 
 function DropLane({
   id, notes, currentUserId, header, emptyHint, accent, dashed, ranked, onSetPriority, savingIds,
+  priorityLane, shake, onEvidenceChange,
 }: {
-  id:            string
-  notes:         NoteSafe[]
+  id: string
+  notes: NoteSafe[]
   currentUserId: string
-  header:        ReactNode
-  emptyHint:     string
-  accent?:       boolean
-  dashed?:       boolean
-  ranked?:       boolean
+  header: ReactNode
+  emptyHint: string
+  accent?: boolean
+  dashed?: boolean
+  ranked?: boolean
   onSetPriority?: (noteId: string, priority: boolean) => void
-  savingIds?:    Set<string>
+  savingIds?: Set<string>
+  priorityLane?: boolean
+  shake?: { id: string; n: number } | null
+  onEvidenceChange?: (noteId: string, evidence: NoteEvidence[]) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
@@ -411,6 +443,9 @@ function DropLane({
                 rank={ranked ? i + 1 : undefined}
                 onSetPriority={onSetPriority}
                 saving={savingIds?.has(note.id)}
+                inPriorityLane={priorityLane}
+                shakeSignal={shake?.id === note.id ? shake.n : 0}
+                onEvidenceChange={onEvidenceChange}
               />
             ))
           )}

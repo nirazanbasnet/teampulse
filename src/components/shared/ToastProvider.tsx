@@ -5,16 +5,16 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 import { cn } from '@/lib/utils'
 
 interface Toast {
-  id:      string
+  id: string
   message: string
-  type:    'success' | 'error' | 'info'
+  type: 'success' | 'error' | 'info'
 }
 
 interface ToastCtx {
   toast: (message: string, type?: Toast['type']) => void
 }
 
-const ToastContext = createContext<ToastCtx>({ toast: () => {} })
+const ToastContext = createContext<ToastCtx>({ toast: () => { } })
 
 export function useToast() {
   return useContext(ToastContext)
@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-5 right-5 flex flex-col gap-2 z-[100] pointer-events-none">
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-[100] pointer-events-none">
         {toasts.map(t => (
           <div
             key={t.id}
@@ -44,19 +44,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               'flex items-center gap-2 px-[14px] py-[9px] rounded-lg text-[13px] whitespace-nowrap',
               '[animation:slideUpToast_.2s_ease]',
               t.type === 'success' && 'bg-foreground text-background',
-              t.type === 'error'   && 'bg-[#A32D2D] text-white',
-              t.type === 'info'    && 'bg-[#185FA5] text-white',
+              t.type === 'error' && 'bg-[#A32D2D] text-white',
+              t.type === 'info' && 'bg-[#185FA5] text-white',
             )}
           >
-            <i className={`ti ${ICONS[t.type]} text-[14px]`} aria-hidden="true" />
+            <i className={`ti ${ICONS[t.type]} text-sm`} aria-hidden="true" />
             {t.message}
           </div>
         ))}
       </div>
       <style>{`
         @keyframes slideUpToast {
-          from { transform: translateY(8px); opacity: 0; }
-          to   { transform: translateY(0);   opacity: 1; }
+          from { transform: translateY(-8px); opacity: 0; }
+          to   { transform: translateY(0);    opacity: 1; }
         }
       `}</style>
     </ToastContext.Provider>

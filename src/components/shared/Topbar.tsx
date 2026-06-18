@@ -1,33 +1,33 @@
 // src/components/shared/Topbar.tsx
 'use client'
 
-import Link               from 'next/link'
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState }       from 'react'
-import { Avatar }         from './Avatar'
+import { useState } from 'react'
+import { Avatar } from './Avatar'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { cn } from '@/lib/utils'
 import type { Profile, Team, FeedbackCycle } from '@/lib/types'
 
 interface TopbarProps {
-  profile:   Profile
-  team?:     Team
-  cycle?:    FeedbackCycle | null
-  isAdmin?:  boolean
+  profile: Profile
+  team?: Team
+  cycle?: FeedbackCycle | null
+  isAdmin?: boolean
   /** All teams the current user belongs to — drives the team switcher. */
-  teams?:    { id: string; name: string }[]
+  teams?: { id: string; name: string }[]
 }
 
 export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProps) {
   const pathname = usePathname()
-  const router   = useRouter()
+  const router = useRouter()
   const [switcherOpen, setSwitcherOpen] = useState(false)
-  const [menuOpen,     setMenuOpen]     = useState(false)
-  const [signingOut,   setSigningOut]   = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   const navItems = team ? [
-    { href: `/board/${team.id}`,     label: 'Board',     icon: 'ti-layout-kanban' },
-    { href: `/analytics/${team.id}`, label: 'Analytics', icon: 'ti-chart-bar'     },
+    { href: `/board/${team.id}`, label: 'Board', icon: 'ti-layout-kanban' },
+    { href: `/analytics/${team.id}`, label: 'Analytics', icon: 'ti-chart-bar' },
     ...(isAdmin ? [{ href: `/admin/teams`, label: 'Admin', icon: 'ti-settings' }] : []),
   ] : []
 
@@ -46,7 +46,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
       {/* Brand */}
       <Link href="/" className="no-underline flex items-center gap-[7px]">
         <span className="w-2 h-2 rounded-full bg-primary inline-block" />
-        <span className="text-[14px] font-medium text-foreground tracking-[-0.02em]">
+        <span className="text-sm font-medium text-foreground tracking-[-0.02em]">
           TeamPulse
         </span>
       </Link>
@@ -60,7 +60,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
               onClick={() => setSwitcherOpen(v => !v)}
               className="flex items-center gap-[5px] text-[13px] text-foreground font-medium px-[8px] py-[4px] rounded-md hover:bg-muted transition-colors"
             >
-              <i className="ti ti-users-group text-[14px] text-muted-foreground" aria-hidden="true" />
+              <i className="ti ti-users-group text-sm text-muted-foreground" aria-hidden="true" />
               {team.name}
               {teams.length > 1 && (
                 <i className={cn('ti ti-chevron-down text-[13px] text-muted-foreground transition-transform', switcherOpen && 'rotate-180')} aria-hidden="true" />
@@ -82,7 +82,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
                         t.id === team.id ? 'text-foreground font-medium' : 'text-muted-foreground',
                       )}
                     >
-                      <i className={cn('ti text-[14px]', t.id === team.id ? 'ti-circle-check text-primary' : 'ti-circle')} aria-hidden="true" />
+                      <i className={cn('ti text-sm', t.id === team.id ? 'ti-circle-check text-primary' : 'ti-circle')} aria-hidden="true" />
                       {t.name}
                     </Link>
                   ))}
@@ -95,7 +95,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
 
       {/* Nav */}
       {navItems.length > 0 && (
-        <nav className="flex gap-[2px] ml-1">
+        <nav className="flex gap-0.5 ml-1">
           {navItems.map(item => {
             const active = pathname === item.href
             return (
@@ -103,13 +103,13 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-[5px] px-[10px] py-[5px] rounded-lg text-[12px] no-underline transition-all duration-150',
+                  'flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs no-underline transition-all duration-150',
                   active
                     ? 'font-medium text-foreground bg-muted'
                     : 'font-normal text-muted-foreground bg-transparent hover:text-foreground',
                 )}
               >
-                <i className={`ti ${item.icon} text-[14px]`} aria-hidden="true" />
+                <i className={`ti ${item.icon} text-sm`} aria-hidden="true" />
                 {item.label}
               </Link>
             )
@@ -118,10 +118,10 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
       )}
 
       {/* Right side */}
-      <div className="ml-auto flex items-center gap-[10px]">
+      <div className="ml-auto flex items-center gap-2.5">
         {cycle && (
           <span className={cn(
-            'flex items-center gap-[5px] px-[10px] py-[3px] rounded-[20px] text-[11px] font-mono',
+            'flex items-center gap-[5px] px-2.5 py-[3px] rounded-[20px] text-[11px] font-mono',
             cycle.status === 'active'
               ? 'bg-accent text-accent-foreground'
               : 'bg-muted text-muted-foreground'
@@ -158,7 +158,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
                     onClick={() => setMenuOpen(false)}
                     className="flex items-center gap-2 px-3 py-2 text-[13px] text-muted-foreground no-underline hover:bg-muted hover:text-foreground"
                   >
-                    <i className="ti ti-settings text-[14px]" aria-hidden="true" />
+                    <i className="ti ti-settings text-sm" aria-hidden="true" />
                     Team management
                   </Link>
                 )}
@@ -167,7 +167,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
                   disabled={signingOut}
                   className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#A32D2D] hover:bg-muted text-left"
                 >
-                  <i className="ti ti-logout text-[14px]" aria-hidden="true" />
+                  <i className="ti ti-logout text-sm" aria-hidden="true" />
                   {signingOut ? 'Signing out…' : 'Sign out'}
                 </button>
               </div>

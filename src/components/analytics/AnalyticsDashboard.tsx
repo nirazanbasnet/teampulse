@@ -1,31 +1,31 @@
 // src/components/analytics/AnalyticsDashboard.tsx
 'use client'
 
-import { useState }      from 'react'
-import { useRouter }     from 'next/navigation'
-import { TagBarChart }   from './TagBarChart'
-import { TypeDonut }     from './TypeDonut'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { TagBarChart } from './TagBarChart'
+import { TypeDonut } from './TypeDonut'
 import { CompletionTrend } from './CompletionTrend'
 import { MemberStatRow } from './MemberStatRow'
-import { Avatar }        from '@/components/shared/Avatar'
+import { Avatar } from '@/components/shared/Avatar'
 import type { Team, FeedbackCycle, TeamAnalytics } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 interface AnalyticsDashboardProps {
-  team:             Team
-  cycles:           FeedbackCycle[]
-  activeCycleId:    string | null
-  analytics:        TeamAnalytics
-  currentUserId:    string
-  personalSummary:  string | null
-  isAdmin:          boolean
+  team: Team
+  cycles: FeedbackCycle[]
+  activeCycleId: string | null
+  analytics: TeamAnalytics
+  currentUserId: string
+  personalSummary: string | null
+  isAdmin: boolean
 }
 
 export function AnalyticsDashboard({
   team, cycles, activeCycleId, analytics,
   currentUserId, personalSummary, isAdmin,
 }: AnalyticsDashboardProps) {
-  const router  = useRouter()
+  const router = useRouter()
   const [tab, setTab] = useState<'team' | 'personal'>('team')
 
   const myStat = analytics.member_stats.find(s => s.profile.id === currentUserId)
@@ -35,10 +35,10 @@ export function AnalyticsDashboard({
   }
 
   const statCards = [
-    { label: 'Total notes',    value: analytics.total_notes,               icon: 'ti-note'      },
-    { label: 'Completion',     value: `${analytics.completion_rate}%`,     icon: 'ti-check'     },
-    { label: 'Done',           value: analytics.done_notes,                icon: 'ti-checkbox'  },
-    { label: 'Participation',  value: `${Math.round(analytics.participation * 100)}%`, icon: 'ti-users' },
+    { label: 'Total notes', value: analytics.total_notes, icon: 'ti-note' },
+    { label: 'Completion', value: `${analytics.completion_rate}%`, icon: 'ti-check' },
+    { label: 'Done', value: analytics.done_notes, icon: 'ti-checkbox' },
+    { label: 'Participation', value: `${Math.round(analytics.participation * 100)}%`, icon: 'ti-users' },
   ]
 
   return (
@@ -52,7 +52,7 @@ export function AnalyticsDashboard({
               key={c.id}
               onClick={() => switchCycle(c.id)}
               className={cn(
-                'py-[5px] px-3 rounded-[20px] text-[12px] cursor-pointer font-mono',
+                'py-1 px-3 rounded-[20px] text-xs cursor-pointer font-mono',
                 c.id === activeCycleId
                   ? 'border-[1.5px] border-primary bg-accent text-accent-foreground'
                   : 'border border-border bg-transparent text-muted-foreground',
@@ -74,7 +74,7 @@ export function AnalyticsDashboard({
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              'py-[10px] px-4 text-[13px] bg-transparent border-none cursor-pointer capitalize',
+              'py-2.5 px-4 text-[13px] bg-transparent border-none cursor-pointer capitalize',
               tab === t
                 ? 'font-medium text-foreground border-b-2 border-primary'
                 : 'font-normal text-muted-foreground border-b-2 border-transparent',
@@ -88,7 +88,7 @@ export function AnalyticsDashboard({
       {tab === 'team' && (
         <>
           {/* Stat cards */}
-          <div className="grid gap-[10px] mb-5 grid-cols-[repeat(auto-fit,minmax(130px,1fr))]">
+          <div className="grid gap-2.5 mb-5 grid-cols-[repeat(auto-fit,minmax(130px,1fr))]">
             {statCards.map(s => (
               <div key={s.label} className="bg-muted rounded-lg p-[14px]">
                 <div className="text-[11px] text-muted-foreground mb-[6px] flex items-center gap-[5px]">
@@ -131,12 +131,12 @@ export function AnalyticsDashboard({
       {tab === 'personal' && myStat && (
         <>
           {/* Personal stat cards */}
-          <div className="grid gap-[10px] mb-5 grid-cols-[repeat(auto-fit,minmax(130px,1fr))]">
+          <div className="grid gap-2.5 mb-5 grid-cols-[repeat(auto-fit,minmax(130px,1fr))]">
             {[
-              { label: 'Notes received',  value: myStat.notes_received  },
-              { label: 'Actioned',        value: `${myStat.completion_rate}%` },
-              { label: 'Strength notes',  value: analytics.member_stats.find(s => s.profile.id === currentUserId) ? 0 : 0 },
-              { label: 'Growth notes',    value: 0 },
+              { label: 'Notes received', value: myStat.notes_received },
+              { label: 'Actioned', value: `${myStat.completion_rate}%` },
+              { label: 'Strength notes', value: analytics.member_stats.find(s => s.profile.id === currentUserId) ? 0 : 0 },
+              { label: 'Growth notes', value: 0 },
             ].map(s => (
               <div key={s.label} className="bg-muted rounded-lg p-[14px]">
                 <div className="text-[11px] text-muted-foreground mb-[6px]">{s.label}</div>
@@ -154,7 +154,7 @@ export function AnalyticsDashboard({
           {/* AI Summary */}
           {personalSummary ? (
             <div className="border border-[#AFA9EC] rounded-[12px] p-4 bg-[#EEEDFE]">
-              <div className="flex items-center gap-2 mb-[10px]">
+              <div className="flex items-center gap-2 mb-2.5">
                 <i className="ti ti-sparkles text-[16px] text-[#534AB7]" aria-hidden="true" />
                 <h3 className="text-[13px] font-medium text-[#3C3489] m-0">
                   AI theme summary — private to you
