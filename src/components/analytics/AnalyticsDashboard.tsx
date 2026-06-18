@@ -2,12 +2,12 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { TagBarChart } from './TagBarChart'
 import { TypeDonut } from './TypeDonut'
-import { CompletionTrend } from './CompletionTrend'
 import { MemberStatRow } from './MemberStatRow'
-import { Avatar } from '@/components/shared/Avatar'
+import { COMPETENCY_META, scoreLabel, type GrowthScores } from '@/lib/growth/score'
 import type { Team, FeedbackCycle, TeamAnalytics } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -19,11 +19,13 @@ interface AnalyticsDashboardProps {
   currentUserId: string
   personalSummary: string | null
   isAdmin: boolean
+  teamScores: GrowthScores
+  myScores: GrowthScores
 }
 
 export function AnalyticsDashboard({
   team, cycles, activeCycleId, analytics,
-  currentUserId, personalSummary, isAdmin,
+  currentUserId, personalSummary, isAdmin, teamScores, myScores,
 }: AnalyticsDashboardProps) {
   const router = useRouter()
   const [tab, setTab] = useState<'team' | 'personal'>('team')
@@ -42,7 +44,7 @@ export function AnalyticsDashboard({
   ]
 
   return (
-    <div className="p-4">
+    <div className="mx-auto max-w-[1100px] p-4">
 
       {/* Cycle selector */}
       {cycles.length > 0 && (
@@ -100,20 +102,34 @@ export function AnalyticsDashboard({
             ))}
           </div>
 
+          {/* Team competency health — where the team is strong / developing */}
+          <div className="border border-border bg-card rounded-[12px] p-4 mb-5">
+            <div className="mb-3.5 flex items-center justify-between">
+              <h3 className="text-[13px] font-medium">Team competency health</h3>
+              <span className="font-mono text-[12px] text-muted-foreground">
+                overall {teamScores.overall ?? '—'} · {scoreLabel(teamScores.overall)}
+              </span>
+            </div>
+            <CompetencyBars scores={teamScores} />
+            <p className="mt-3 text-[10.5px] leading-relaxed text-muted-foreground/80">
+              Per competency, the balance of strength vs. growth notes across the whole team (smoothed for small samples). Higher = the team is collectively strong here.
+            </p>
+          </div>
+
           {/* Charts row */}
           <div className="grid gap-4 mb-5 grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
-            <div className="border border-border rounded-[12px] p-4">
+            <div className="border border-border bg-card rounded-[12px] p-4">
               <h3 className="text-[13px] font-medium mb-[14px]">Tag distribution</h3>
               <TagBarChart data={analytics.tag_distribution} />
             </div>
-            <div className="border border-border rounded-[12px] p-4">
+            <div className="border border-border bg-card rounded-[12px] p-4">
               <h3 className="text-[13px] font-medium mb-[14px]">Note types</h3>
               <TypeDonut data={analytics.type_distribution} total={analytics.total_notes} />
             </div>
           </div>
 
           {/* Member stats */}
-          <div className="border border-border rounded-[12px] p-4 mb-5">
+          <div className="border border-border bg-card rounded-[12px] p-4 mb-5">
             <h3 className="text-[13px] font-medium mb-[14px]">Member activity</h3>
             <div className="flex flex-col gap-[6px]">
               {analytics.member_stats.map(stat => (
@@ -130,13 +146,26 @@ export function AnalyticsDashboard({
 
       {tab === 'personal' && myStat && (
         <>
+          {/* Full report CTA — the rich individual view lives on /report */}
+          <Link
+            href={`/report/${team.id}`}
+            className="mb-4 flex items-center gap-3 rounded-[12px] border border-primary/40 bg-accent/40 p-4 no-underline transition-colors hover:bg-accent"
+          >
+            <i className="ti ti-chart-radar text-[20px] text-primary" aria-hidden="true" />
+            <div className="flex-1">
+              <div className="text-[13px] font-medium text-foreground">Open your full Growth Report</div>
+              <div className="text-[12px] text-muted-foreground">Competency scorecard, AI insights &amp; a personalised action plan.</div>
+            </div>
+            <i className="ti ti-arrow-right text-[16px] text-primary" aria-hidden="true" />
+          </Link>
+
           {/* Personal stat cards */}
           <div className="grid gap-2.5 mb-5 grid-cols-[repeat(auto-fit,minmax(130px,1fr))]">
             {[
-              { label: 'Notes received', value: myStat.notes_received },
+              { label: 'Notes received', value: myScores.totalNotes },
               { label: 'Actioned', value: `${myStat.completion_rate}%` },
-              { label: 'Strength notes', value: analytics.member_stats.find(s => s.profile.id === currentUserId) ? 0 : 0 },
-              { label: 'Growth notes', value: 0 },
+              { label: 'Strengths', value: myScores.strengthNotes.length },
+              { label: 'Growth areas', value: myScores.growthNotes.length },
             ].map(s => (
               <div key={s.label} className="bg-muted rounded-lg p-[14px]">
                 <div className="text-[11px] text-muted-foreground mb-[6px]">{s.label}</div>
@@ -145,10 +174,13 @@ export function AnalyticsDashboard({
             ))}
           </div>
 
-          {/* Tag breakdown */}
-          <div className="border border-border rounded-[12px] p-4 mb-4">
-            <h3 className="text-[13px] font-medium mb-[14px]">Your feedback breakdown by category</h3>
-            <TagBarChart data={myStat.tag_breakdown} color="#534AB7" />
+          {/* Your competency scores */}
+          <div className="border border-border bg-card rounded-[12px] p-4 mb-4">
+            <div className="mb-3.5 flex items-center justify-between">
+              <h3 className="text-[13px] font-medium">Your competency scores</h3>
+              <span className="font-mono text-[12px] text-muted-foreground">overall {myScores.overall ?? '—'}</span>
+            </div>
+            <CompetencyBars scores={myScores} />
           </div>
 
           {/* AI Summary */}
@@ -172,6 +204,35 @@ export function AnalyticsDashboard({
           )}
         </>
       )}
+    </div>
+  )
+}
+
+// Horizontal competency bars, coloured to match the Growth Report / board.
+function CompetencyBars({ scores }: { scores: GrowthScores }) {
+  return (
+    <div className="flex flex-col gap-3">
+      {scores.competencies.map(c => {
+        const meta = COMPETENCY_META[c.key]
+        return (
+          <div key={c.key} className="flex items-center gap-3">
+            <div className="flex w-[112px] shrink-0 items-center gap-1.5">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: meta.color }} />
+              <span className="truncate text-[12px] text-foreground">{meta.label}</span>
+            </div>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${c.score ?? 0}%`, background: meta.color, transition: 'width .9s cubic-bezier(.22,1,.36,1)' }}
+              />
+            </div>
+            <span className="w-[52px] shrink-0 text-right font-mono text-[12px]" style={{ color: c.score === null ? '#a0a09d' : meta.color }}>
+              {c.score === null ? '—' : c.score}
+              <span className="ml-1 text-[10px] text-muted-foreground">{c.mentions > 0 ? `·${c.mentions}` : ''}</span>
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -34,6 +34,7 @@ import {
 import { BoardColumn } from './BoardColumn'
 import { NoteCard } from './NoteCard'
 import { AddNoteModal } from './AddNoteModal'
+import { GiveFeedbackPicker } from './GiveFeedbackPicker'
 import { MetricsBar } from './MetricsBar'
 import { Avatar } from '@/components/shared/Avatar'
 import { useBoardRealtime } from '@/lib/hooks/use-board-realtime'
@@ -55,6 +56,8 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
   const [activeNote, setActiveNote] = useState<NoteSafe | null>(null)
   const [addModalFor, setAddModalFor] = useState<{ recipientId: string; recipientName: string } | null>(null)
   const [savingIds, setSavingIds] = useState<Set<string>>(() => new Set())
+  // Peers are collapsed by default — expand to browse the team's feedback.
+  const [showPeers, setShowPeers] = useState(false)
   // Drives the "needs evidence" shake on a card whose drag-to-Done was blocked.
   const [shake, setShake] = useState<{ id: string; n: number } | null>(null)
   const [, startTransition] = useTransition()
@@ -248,7 +251,17 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
         cycleName={boardState.cycle?.name ?? null}
       />
 
-      <div className="px-4 py-3">
+      <div className="mx-auto max-w-[1100px] px-4 py-3">
+        {/* Give feedback — searchable teammate picker (scales to any team size) */}
+        {otherColumns.length > 0 && (
+          <div className="mb-4">
+            <GiveFeedbackPicker
+              peers={otherColumns}
+              onPick={(recipientId, recipientName) => setAddModalFor({ recipientId, recipientName })}
+            />
+          </div>
+        )}
+
         <DndContext
           id="teampulse-board"
           sensors={sensors}
@@ -256,34 +269,14 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex items-stretch gap-3">
-            {/* Left region: other members' columns. Read-only (write via the
-                "+ Add feedback" button). Scrolls horizontally on overflow so
-                it never pushes your pinned personal area off-screen. */}
-            {otherColumns.length > 0 && (
-              <div className="flex-1 min-w-0 overflow-x-auto pb-1">
-                <div className="flex items-start gap-3 min-w-max">
-                  {otherColumns.map(col => (
-                    <BoardColumn
-                      key={col.member.profile_id}
-                      column={col}
-                      currentUserId={currentUserId}
-                      onAddNote={() =>
-                        setAddModalFor({
-                          recipientId: col.member.profile_id,
-                          recipientName: col.member.profile.full_name,
-                        })
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Right region: your personal area — pinned (shrink-0) so your
-                Received / Priorities / Done lanes stay visible no matter how
-                many members there are. */}
-            <div className="shrink-0 flex items-start gap-3 p-4 rounded-lg bg-[#e8e6dc]">
+          {/* Your area — the hero: Received / Priorities / Done, full width. */}
+          <div className="rounded-[14px] bg-[#e8e6dc] p-4">
+            <div className="mb-3 flex items-center gap-2 px-1">
+              <i className="ti ti-inbox text-[15px] text-foreground/70" aria-hidden="true" />
+              <h3 className="m-0 text-[13px] font-medium">Your feedback</h3>
+              <span className="text-[11px] text-muted-foreground">· drag between lanes to organise</span>
+            </div>
+            <div className="flex flex-wrap items-start gap-3">
               {/* Inbox — received feedback. Star or drag into Priorities. */}
               {myColumn && myProfileId && (
                 <DropLane
@@ -370,6 +363,40 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
             </div>
           </div>
 
+          {/* Browse team feedback — peers collapsed by default to keep the
+              board calm; expand on demand. Scrolls horizontally on overflow. */}
+          {otherColumns.length > 0 && (
+            <div className="mt-4">
+              <button
+                onClick={() => setShowPeers(v => !v)}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] text-muted-foreground hover:text-foreground"
+              >
+                <i className={cn('ti text-[14px] transition-transform', showPeers ? 'ti-chevron-down' : 'ti-chevron-right')} aria-hidden="true" />
+                Browse team feedback
+                <span className="font-mono text-[11px] text-muted-foreground/70">{otherColumns.length}</span>
+              </button>
+              {showPeers && (
+                <div className="mt-2 overflow-x-auto pb-1">
+                  <div className="flex min-w-max items-start gap-3">
+                    {otherColumns.map(col => (
+                      <BoardColumn
+                        key={col.member.profile_id}
+                        column={col}
+                        currentUserId={currentUserId}
+                        onAddNote={() =>
+                          setAddModalFor({
+                            recipientId: col.member.profile_id,
+                            recipientName: col.member.profile.full_name,
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <DragOverlay>
             {activeNote && (
               <NoteCard note={activeNote} currentUserId={currentUserId} isDragging />
@@ -420,7 +447,7 @@ function DropLane({
   return (
     <div
       className={cn(
-        'w-[230px] shrink-0 rounded-[12px] flex flex-col border',
+        'flex-1 min-w-[240px] rounded-[12px] flex flex-col border',
         accent ? 'border-primary/40' : 'border-border',
         dashed && 'border-dashed',
         isOver ? 'bg-accent ring-2 ring-primary/50' : 'bg-background',

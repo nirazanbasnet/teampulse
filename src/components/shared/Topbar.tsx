@@ -48,7 +48,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
       <Link href="/" className="no-underline flex items-center gap-[7px]">
         <span className="w-2 h-2 rounded-full bg-primary inline-block" />
         <span className="text-sm font-medium text-foreground tracking-[-0.02em]">
-          TeamPulse
+          JoBinsPulse
         </span>
       </Link>
 
@@ -79,7 +79,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
                       href={`/board/${t.id}`}
                       onClick={() => setSwitcherOpen(false)}
                       className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-[13px] no-underline hover:bg-muted',
+                        'flex items-center gap-2 px-3 py-2 text-sm no-underline hover:bg-muted leading-[1]',
                         t.id === team.id ? 'text-foreground font-medium' : 'text-muted-foreground',
                       )}
                     >

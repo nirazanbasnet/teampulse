@@ -6,12 +6,15 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { setNoteDone, setNotePriority, deleteNote, reportNote, toggleReaction, addEvidence, deleteEvidence } from '@/server/actions/notes'
 import type { NoteSafe, NoteType, NoteEvidence } from '@/lib/types'
+import { COMPETENCY_META } from '@/lib/growth/score'
 import { cn } from '@/lib/utils'
 
-const TYPE_STYLES: Record<NoteType, { bg: string; border: string; color: string; label: string }> = {
-  general: { bg: '#FFFDE7', border: '#E8CF3A', color: '#3D2C00', label: 'General' },
-  strength: { bg: '#E1F5EE', border: '#5DCAA5', color: '#04342C', label: 'Strength' },
-  growth: { bg: '#E6F1FB', border: '#85B7EB', color: '#042C53', label: 'Growth' },
+// Explicit per-type chip (icon + label) so the note's intent reads at a glance,
+// not just via background tint.
+const TYPE_CHIP: Record<NoteType, { label: string; icon: string; bg: string; color: string }> = {
+  strength: { label: 'Strength', icon: 'ti-star',         bg: '#CDEFE3', color: '#0F6E56' },
+  growth:   { label: 'Growth',   icon: 'ti-target-arrow', bg: '#D5E8FB', color: '#185FA5' },
+  general:  { label: 'General',  icon: 'ti-message-dots', bg: '#F6EDBE', color: '#7A5C00' },
 }
 
 // Tailwind arbitrary-value classes per note_type (bg + border)
@@ -79,6 +82,7 @@ export function NoteCard({
 }: NoteCardProps) {
   const [showReport, setShowReport] = useState(false)
   const [reportText, setReportText] = useState('')
+  const [showMenu, setShowMenu] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // ── "Needs evidence" shake — visual alert when a Done attempt is blocked ──
@@ -118,16 +122,22 @@ export function NoteCard({
     disabled: !note.can_mark_done,
   })
 
+  const isLocked = note.done
+
+  // Left accent in the note's primary competency colour, so a column is
+  // scannable by competency at a glance. Muted/none on done notes.
+  const primaryTag   = note.tags.find(t => COMPETENCY_META[t])
+  const accentColor  = !isLocked && primaryTag ? COMPETENCY_META[primaryTag].color : undefined
+
   // KEEP dnd-kit transform/transition inline — cannot be expressed as static Tailwind
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isSortableDragging ? 0.35 : 1,
     rotate: isDragging ? '1.5deg' : undefined,
+    borderLeftColor: accentColor,
+    borderLeftWidth: accentColor ? 3 : undefined,
   }
-
-  const typeStyle = TYPE_STYLES[note.note_type]
-  const isLocked = note.done
 
   function handleMarkDone() {
     // Evidence is required before a note can move to Done.
@@ -225,17 +235,22 @@ export function NoteCard({
       {...attributes}
       {...listeners}
     >
-      {/* Type indicator dot */}
+      {/* Type chip — explicit intent at a glance */}
       {!isLocked && (
-        <div
-          className="absolute top-2 right-2 w-[6px] h-[6px] rounded-full opacity-70"
-          style={{ background: typeStyle.border }}
-        />
+        <div className="mb-[5px]">
+          <span
+            className="inline-flex items-center gap-1 rounded-[5px] px-1.5 py-px text-[10px] font-medium"
+            style={{ background: TYPE_CHIP[note.note_type].bg, color: TYPE_CHIP[note.note_type].color }}
+          >
+            <i className={cn('ti text-[10px]', TYPE_CHIP[note.note_type].icon)} aria-hidden="true" />
+            {TYPE_CHIP[note.note_type].label}
+          </span>
+        </div>
       )}
 
       {/* Content */}
       <p className={cn(
-        'text-xs leading-[1.5] m-0 pr-2.5 break-words',
+        'text-xs leading-[1.5] m-0 break-words',
         note.tags.length > 0 ? 'mb-[6px]' : 'mb-0',
         isLocked
           ? 'text-muted-foreground/70 line-through'
@@ -244,20 +259,21 @@ export function NoteCard({
         {note.content}
       </p>
 
-      {/* Tags */}
+      {/* Competency tags — coloured to match the Growth scorecard */}
       {note.tags.length > 0 && !isLocked && (
-        <div className="flex flex-wrap gap-0.5 mb-1.5">
-          {note.tags.map(tag => (
-            <span
-              key={tag}
-              className={cn(
-                'text-xs px-1.5 py-px rounded-[20px] bg-black/[.07] font-mono',
-                TYPE_TEXT[note.note_type],
-              )}
-            >
-              {tag}
-            </span>
-          ))}
+        <div className="flex flex-wrap gap-1 mb-1.5">
+          {note.tags.map(tag => {
+            const meta = COMPETENCY_META[tag]
+            return (
+              <span
+                key={tag}
+                className="text-[10px] px-1.5 py-px rounded-[20px] font-medium"
+                style={meta ? { background: `${meta.color}1A`, color: meta.color } : undefined}
+              >
+                {tag}
+              </span>
+            )
+          })}
         </div>
       )}
 
@@ -330,23 +346,42 @@ export function NoteCard({
               disabled={isPending}
             />
           )}
-          {note.is_mine && note.can_edit && (
-            <ActionBtn
-              icon="ti-trash"
-              label="Delete note"
-              color="#993C1D"
-              onClick={handleDelete}
-              disabled={isPending}
-            />
-          )}
-          {!note.is_mine && (
-            <ActionBtn
-              icon="ti-flag"
-              label="Report note"
-              color="#854F0B"
-              onClick={() => setShowReport(v => !v)}
-              disabled={isPending}
-            />
+          {/* Secondary actions in a labelled menu — clearer than a bare icon */}
+          {(!note.is_mine || (note.is_mine && note.can_edit)) && (
+            <div className="relative">
+              <ActionBtn
+                icon="ti-dots"
+                label="More actions"
+                color="#6b6b67"
+                onClick={() => setShowMenu(v => !v)}
+                disabled={isPending}
+              />
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-1 min-w-[148px] rounded-lg border border-border bg-popover py-1 shadow-lg">
+                    {!note.is_mine && (
+                      <button
+                        onClick={() => { setShowReport(true); setShowMenu(false) }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-[#854F0B] hover:bg-muted"
+                      >
+                        <i className="ti ti-flag text-[13px]" aria-hidden="true" />
+                        Report note
+                      </button>
+                    )}
+                    {note.is_mine && note.can_edit && (
+                      <button
+                        onClick={() => { setShowMenu(false); handleDelete() }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-[#993C1D] hover:bg-muted"
+                      >
+                        <i className="ti ti-trash text-[13px]" aria-hidden="true" />
+                        Delete note
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>

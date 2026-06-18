@@ -3,7 +3,8 @@ import { notFound, redirect } from 'next/navigation'
 import { createServerClient }  from '@/lib/supabase/server'
 import { AnalyticsDashboard }  from '@/components/analytics/AnalyticsDashboard'
 import { Topbar }             from '@/components/shared/Topbar'
-import type { NoteTag, NoteType, TeamAnalytics } from '@/lib/types'
+import { computeGrowthScores } from '@/lib/growth/score'
+import type { NoteSafe, NoteTag, NoteType, TeamAnalytics } from '@/lib/types'
 
 interface AnalyticsPageProps {
   params:      { teamId: string }
@@ -54,6 +55,13 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
 
   const allNotes = notes ?? []
   const members  = team.team_members.map((m: any) => m.profiles)
+
+  // Competency scores: team-wide and the current user's own (reuses the
+  // Growth Report scoring model so numbers stay consistent across pages).
+  const teamScores = computeGrowthScores(allNotes as unknown as NoteSafe[])
+  const myScores   = computeGrowthScores(
+    allNotes.filter((n: any) => n.recipient_id === user.id) as unknown as NoteSafe[],
+  )
 
   // Build analytics
   const tagCounts: Record<NoteTag, number> = {
@@ -145,6 +153,8 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
         currentUserId={user.id}
         personalSummary={summary?.summary_text ?? null}
         isAdmin={isAdmin}
+        teamScores={teamScores}
+        myScores={myScores}
       />
     </div>
   )

@@ -1,12 +1,12 @@
 // src/app/auth/login/page.tsx
 'use client'
 
-import { useState }            from 'react'
+import { useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { Button } from '@/components/ui/button'
 
 export default function LoginPage() {
-  const [error,         setError]         = useState('')
+  const [error, setError] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
   const supabase = createBrowserClient()
 
@@ -32,7 +32,7 @@ export default function LoginPage() {
         {/* Brand */}
         <div className="mb-6 flex items-center gap-2">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-primary" />
-          <span className="text-base font-medium tracking-tight">TeamPulse</span>
+          <span className="text-base font-medium tracking-tight">JoBinsPulse</span>
         </div>
 
         <h1 className="mb-1 text-lg font-medium">Sign in</h1>

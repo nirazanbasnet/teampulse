@@ -114,16 +114,16 @@ export default async function ActivityPage() {
                     </div>
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <span
-                        className="text-xs px-2 py-px rounded-[20px] font-mono"
+                        className="text-[10px] px-2 py-px rounded-[20px] font-mono capitalize"
                         style={{ background: `${TYPE_COLORS[n.note_type] ?? '#999'}22`, color: TYPE_COLORS[n.note_type] ?? '#666' }}
                       >
                         {n.note_type}
                       </span>
                       {(n.tags ?? []).map((tag: string) => (
-                        <span key={tag} className="text-xs px-2 py-px rounded-[20px] bg-muted text-muted-foreground font-mono">{tag}</span>
+                        <span key={tag} className="text-[10px] capitalize px-2 py-px rounded-[20px] bg-muted text-muted-foreground font-mono">{tag}</span>
                       ))}
                       {n.done && (
-                        <span className="text-xs px-2 py-px rounded-[20px] bg-[#E1F5EE] text-[#0F6E56] font-mono inline-flex items-center gap-1">
+                        <span className="text-[10px] px-2 py-px rounded-[20px] bg-[#E1F5EE] text-[#0F6E56] font-mono inline-flex items-center gap-1 capitalize">
                           <i className="ti ti-check text-xs" aria-hidden="true" /> actioned
                         </span>
                       )}

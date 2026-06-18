@@ -1,18 +1,18 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next'
-import { DM_Sans }       from 'next/font/google'
+import { DM_Sans } from 'next/font/google'
 import { createServerClient } from '@/lib/supabase/server'
-import { ToastProvider }  from '@/components/shared/ToastProvider'
+import { ToastProvider } from '@/components/shared/ToastProvider'
 import './globals.css'
 
 const dmSans = DM_Sans({
-  subsets:  ['latin'],
+  subsets: ['latin'],
   variable: '--font-dm-sans',
-  weight:   ['300', '400', '500'],
+  weight: ['300', '400', '500'],
 })
 
 export const metadata: Metadata = {
-  title:       'TeamPulse — Anonymous team feedback',
+  title: 'JoBinsPulse — Anonymous team feedback',
   description: 'Collaborative anonymous sticky-note feedback board for teams.',
 }
 
