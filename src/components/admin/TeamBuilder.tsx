@@ -6,6 +6,15 @@ import { useRouter } from 'next/navigation'
 import { Avatar } from '@/components/shared/Avatar'
 import { useToast } from '@/components/shared/ToastProvider'
 import { createTeam, deleteTeam, addTeamMember, removeTeamMember, setTeamRole } from '@/server/actions/teams'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import type { Team } from '@/lib/types'
 
@@ -34,6 +43,11 @@ export function TeamBuilder({
   const [error, setError] = useState('')
   const [addingId, setAddingId] = useState<string | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  // Team pending deletion (drives the confirm modal); `deleting` is a
+  // dedicated flag so the modal's own loading/disabled state isn't shared
+  // with the other roster transitions.
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const { toast } = useToast()
@@ -65,16 +79,24 @@ export function TeamBuilder({
     })
   }
 
-  function handleDeleteTeam(teamId: string, teamName: string) {
-    if (!window.confirm(`Delete "${teamName}"? This removes the team and all its feedback notes. This cannot be undone.`)) return
+  function confirmDeleteTeam() {
+    if (!deleteTarget || deleting) return
+    const { id, name } = deleteTarget
     setError('')
+    setDeleting(true)
     startTransition(async () => {
       try {
-        await deleteTeam({ teamId })
-        if (selectedTeam === teamId) setSelectedTeam(null)
+        await deleteTeam({ teamId: id })
+        if (selectedTeam === id) setSelectedTeam(null)
+        setDeleteTarget(null)
+        toast(`Team “${name}” deleted`)
         router.refresh()
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to delete team')
+        const msg = e instanceof Error ? e.message : 'Failed to delete team'
+        setError(msg)
+        toast(msg, 'error')
+      } finally {
+        setDeleting(false)
       }
     })
   }
@@ -246,9 +268,9 @@ export function TeamBuilder({
                 </div>
                 {canCreateTeams && (
                   <button
-                    onClick={() => handleDeleteTeam(activeTeam.id, activeTeam.name)}
+                    onClick={() => setDeleteTarget({ id: activeTeam.id, name: activeTeam.name })}
                     disabled={isPending}
-                    className="py-1 px-2.5 text-xs rounded-[8px] border border-border bg-transparent cursor-pointer flex items-center gap-[5px] text-[#993C1D]"
+                    className="py-1 px-2.5 text-xs rounded-[8px] border border-border bg-transparent cursor-pointer flex items-center gap-[5px] text-[#993C1D] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <i className="ti ti-trash text-[13px]" aria-hidden="true" />
                     Delete
@@ -347,6 +369,65 @@ export function TeamBuilder({
           </div>
         )}
       </div>
+
+      {/* Delete-team confirmation — can't be dismissed while the delete is in flight. */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={open => { if (!open && !deleting) setDeleteTarget(null) }}
+      >
+        <DialogContent
+          className="max-w-[420px]"
+          onEscapeKeyDown={e => { if (deleting) e.preventDefault() }}
+          onInteractOutside={e => { if (deleting) e.preventDefault() }}
+          onPointerDownOutside={e => { if (deleting) e.preventDefault() }}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#993C1D]">
+              <i className="ti ti-alert-triangle text-base" aria-hidden="true" />
+              Delete “{deleteTarget?.name}”?
+            </DialogTitle>
+            <DialogDescription>
+              This permanently removes the team and all of its feedback notes. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleting && (
+            <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
+              Deleting the team and its notes…
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={confirmDeleteTeam}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
+                  Deleting…
+                </>
+              ) : (
+                <>
+                  <i className="ti ti-trash" aria-hidden="true" />
+                  Delete team
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

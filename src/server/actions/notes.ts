@@ -13,11 +13,20 @@ import { revalidatePath } from 'next/cache'
 import { createServerClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { moderateFeedback } from '@/lib/ai/moderate'
+import { notifyFeedbackReceived } from '@/lib/email/notify'
 import type { CreateNoteInput, NoteTag, NoteType, UpdateNotePositionInput } from '@/lib/types'
 
 // ── Create note ───────────────────────────────────────────────
 
-export async function createNote(input: CreateNoteInput) {
+// Expected, user-facing outcomes are returned as values (not thrown).
+// Next.js redacts Error messages thrown from Server Actions in
+// production, so a moderation rejection MUST be returned to survive the
+// server→client boundary with its message intact.
+export type CreateNoteResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function createNote(input: CreateNoteInput): Promise<CreateNoteResult> {
   const supabase = createServerClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -58,10 +67,12 @@ export async function createNote(input: CreateNoteInput) {
   // content is allowed but auto-flagged into the admin moderation queue.
   const moderation = await moderateFeedback(content)
   if (moderation.decision === 'block') {
-    throw new Error(
-      `This feedback can't be posted${moderation.reason ? `: ${moderation.reason}` : ''}. ` +
-      `Please keep feedback respectful and work-related.`,
-    )
+    return {
+      success: false,
+      error:
+        `This feedback can't be posted${moderation.reason ? `: ${moderation.reason}` : ''}. ` +
+        `Please keep feedback respectful and work-related.`,
+    }
   }
 
   // Determine current position (append to end of recipient's column)
@@ -98,6 +109,18 @@ export async function createNote(input: CreateNoteInput) {
       console.error('[moderation] failed to auto-flag note:', flagErr)
     }
   }
+
+  // Email the recipient that they have new feedback. Anonymous and
+  // best-effort — notifyFeedbackReceived never throws, so a mail outage
+  // can't fail the post. (Awaited rather than fire-and-forget so the work
+  // completes before the server action returns.)
+  await notifyFeedbackReceived({
+    recipientId: input.recipient_id,
+    teamId:      input.team_id,
+    noteType:    input.note_type,
+    tags:        input.tags,
+    content,
+  })
 
   revalidatePath(`/board/${input.team_id}`)
   return { success: true }

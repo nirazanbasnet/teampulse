@@ -255,7 +255,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
         cycleName={boardState.cycle?.name ?? null}
       />
 
-      <div className="mx-auto max-w-[1200px] px-4 py-3">
+      <div className="px-4 py-3">
         {/* Give feedback — searchable teammate picker (scales to any team size) */}
         {otherColumns.length > 0 && (
           <div className="mb-4">

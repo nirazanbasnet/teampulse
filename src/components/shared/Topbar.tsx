@@ -3,9 +3,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Avatar } from './Avatar'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { updateEmailNotifications } from '@/server/actions/profile'
 import { cn } from '@/lib/utils'
 import type { Profile, Team, FeedbackCycle } from '@/lib/types'
 
@@ -24,6 +25,22 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  // Optimistic email-notification preference (default on if undefined).
+  const [emailNotifs, setEmailNotifs] = useState(profile.email_notifications ?? true)
+  const [savingPref, startPrefTransition] = useTransition()
+
+  function toggleEmailNotifs() {
+    if (savingPref) return
+    const next = !emailNotifs
+    setEmailNotifs(next) // optimistic — revert if the server rejects it
+    startPrefTransition(async () => {
+      try {
+        await updateEmailNotifications(next)
+      } catch {
+        setEmailNotifs(!next)
+      }
+    })
+  }
 
   const navItems = team ? [
     { href: `/board/${team.id}`, label: 'Board', icon: 'ti-layout-kanban' },
@@ -163,6 +180,34 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
                     Team management
                   </Link>
                 )}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={emailNotifs}
+                  onClick={toggleEmailNotifs}
+                  disabled={savingPref}
+                  title="Get an email when you receive new feedback"
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-60"
+                >
+                  <span className="flex items-center gap-2">
+                    <i className="ti ti-mail text-sm" aria-hidden="true" />
+                    Email notifications
+                  </span>
+                  <span
+                    className={cn(
+                      'relative inline-flex h-[18px] w-[32px] shrink-0 items-center rounded-full transition-colors',
+                      emailNotifs ? 'bg-primary' : 'bg-border',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform',
+                        emailNotifs ? 'translate-x-[16px]' : 'translate-x-[2px]',
+                      )}
+                    />
+                  </span>
+                </button>
+                <div className="my-1 border-t border-border" />
                 <button
                   onClick={handleSignOut}
                   disabled={signingOut}

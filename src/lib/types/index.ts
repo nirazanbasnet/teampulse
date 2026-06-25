@@ -24,6 +24,8 @@ export interface Profile {
   email:      string
   full_name:  string
   avatar_url: string | null
+  /** Opt-in to "you received new feedback" emails (default true). */
+  email_notifications: boolean
   created_at: string
   updated_at: string
 }
@@ -135,7 +137,7 @@ export interface NoteSafe {
   // Computed booleans from the view
   is_mine:       boolean         // current user is the author
   can_mark_done: boolean         // current user is the recipient
-  can_edit:      boolean         // author + within grace period
+  can_edit:      boolean         // author can delete this note (author + not done)
   // Client-joined
   reactions?:    ReactionCount[]
   evidence?:     NoteEvidence[]

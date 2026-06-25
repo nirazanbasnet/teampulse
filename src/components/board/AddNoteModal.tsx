@@ -78,7 +78,7 @@ export function AddNoteModal({
 
     startTransition(async () => {
       try {
-        await createNote({
+        const result = await createNote({
           team_id: teamId,
           cycle_id: cycleId,
           recipient_id: recipientId,
@@ -86,6 +86,14 @@ export function AddNoteModal({
           content: content.trim(),
           tags,
         })
+
+        // Expected, user-facing rejection (e.g. AI moderation block).
+        // Returned as a value so the message survives the server→client
+        // boundary even in production, where Next.js redacts thrown errors.
+        if (!result.success) {
+          setError(result.error)
+          return
+        }
 
         const optimisticNote: NoteSafe = {
           id: crypto.randomUUID(),
