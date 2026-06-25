@@ -47,8 +47,8 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
         <Avatar name={profile.full_name} size={30} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-[5px]">
-            <h4 className="text-[13px] font-medium whitespace-nowrap overflow-hidden text-ellipsis m-0">
-              {profile.full_name.split(' ')[0]}
+            <h4 className="text-[13px] font-medium whitespace-nowrap overflow-hidden text-ellipsis m-0 capitalize">
+              {profile.full_name}
             </h4>
             {isMyColumn && (
               <span className="text-sm px-1.5 py-px rounded-[20px] bg-secondary text-muted-foreground/70 border border-border shrink-0">

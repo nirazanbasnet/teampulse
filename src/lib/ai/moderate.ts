@@ -25,7 +25,10 @@ export interface ModerationResult {
   reason:   string   // short, user-facing explanation
 }
 
-const CEREBRAS_MODEL = 'llama3.1-8b'
+// Match the model the other AI features use — this account has access to
+// llama-3.3-70b (llama3.1-8b 404s). Groq's fast 8b stays the fallback;
+// the classification is short, so the larger primary is still cheap.
+const CEREBRAS_MODEL = 'llama-3.3-70b'
 const GROQ_MODEL     = 'llama-3.1-8b-instant'
 
 const SYSTEM_PROMPT = `You are a content moderator for a workplace ANONYMOUS peer-feedback tool.

@@ -94,6 +94,82 @@ export interface FeedbackCycle {
   updated_at: string
 }
 
+// ── Goals & Wins (self-authored, cycle-scoped, private to the user) ──
+
+export type GoalStatus = 'active' | 'achieved' | 'missed' | 'dropped'
+
+export interface Goal {
+  id:         string
+  team_id:    string
+  cycle_id:   string | null
+  profile_id: string
+  title:      string
+  detail:     string | null
+  competency: NoteTag | null   // one optional axis, same set as feedback
+  target:     string | null    // how success is measured, in the user's words
+  progress:   number           // 0–100
+  status:     GoalStatus
+  due_at:     string | null
+  created_at: string
+  updated_at: string
+  // Client-joined: wins logged as evidence toward this goal.
+  wins?:      Win[]
+}
+
+export interface Win {
+  id:          string
+  team_id:     string
+  cycle_id:    string | null
+  profile_id:  string
+  goal_id:     string | null   // optional link — evidence toward a goal
+  title:       string
+  detail:      string | null
+  competency:  NoteTag | null
+  happened_at: string          // ISO date (yyyy-mm-dd)
+  created_at:  string
+  updated_at:  string
+}
+
+export interface CreateGoalInput {
+  team_id:     string
+  cycle_id?:   string | null
+  title:       string
+  detail?:     string | null
+  competency?: NoteTag | null
+  target?:     string | null
+  due_at?:     string | null   // omitted → action defaults to the cycle's ends_at
+}
+
+export interface UpdateGoalInput {
+  id:          string
+  title?:      string
+  detail?:     string | null
+  competency?: NoteTag | null
+  target?:     string | null
+  progress?:   number
+  status?:     GoalStatus
+  due_at?:     string | null
+}
+
+export interface CreateWinInput {
+  team_id:      string
+  cycle_id?:    string | null
+  goal_id?:     string | null
+  title:        string
+  detail?:      string | null
+  competency?:  NoteTag | null
+  happened_at?: string         // omitted → today, server-side
+}
+
+export interface UpdateWinInput {
+  id:           string
+  title?:       string
+  detail?:      string | null
+  competency?:  NoteTag | null
+  goal_id?:     string | null
+  happened_at?: string
+}
+
 // ── Notes ─────────────────────────────────────────────────────
 //
 // NoteRow is what the DB stores (author_id present).

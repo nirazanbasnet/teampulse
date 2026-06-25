@@ -24,6 +24,7 @@ type UserRole = 'admin' | 'member'
 type TeamRole = 'lead' | 'member'
 type CycleStatus = 'active' | 'closed' | 'archived'
 type ReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'removed'
+type GoalStatus = 'active' | 'achieved' | 'missed' | 'dropped'
 
 export interface Database {
   public: {
@@ -431,6 +432,96 @@ export interface Database {
         }
         Relationships: []
       }
+      goals: {
+        Row: {
+          id: string
+          team_id: string
+          cycle_id: string | null
+          profile_id: string
+          title: string
+          detail: string | null
+          competency: NoteTag | null
+          target: string | null
+          progress: number
+          status: GoalStatus
+          due_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          cycle_id?: string | null
+          profile_id: string
+          title: string
+          detail?: string | null
+          competency?: NoteTag | null
+          target?: string | null
+          progress?: number
+          status?: GoalStatus
+          due_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          cycle_id?: string | null
+          profile_id?: string
+          title?: string
+          detail?: string | null
+          competency?: NoteTag | null
+          target?: string | null
+          progress?: number
+          status?: GoalStatus
+          due_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wins: {
+        Row: {
+          id: string
+          team_id: string
+          cycle_id: string | null
+          profile_id: string
+          goal_id: string | null
+          title: string
+          detail: string | null
+          competency: NoteTag | null
+          happened_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          team_id: string
+          cycle_id?: string | null
+          profile_id: string
+          goal_id?: string | null
+          title: string
+          detail?: string | null
+          competency?: NoteTag | null
+          happened_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          team_id?: string
+          cycle_id?: string | null
+          profile_id?: string
+          goal_id?: string | null
+          title?: string
+          detail?: string | null
+          competency?: NoteTag | null
+          happened_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cycle_summaries: {
         Row: {
           id: string
@@ -607,6 +698,7 @@ export interface Database {
       team_role: TeamRole
       cycle_status: CycleStatus
       report_status: ReportStatus
+      goal_status: GoalStatus
     }
     CompositeTypes: {
       [_ in never]: never

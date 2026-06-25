@@ -45,6 +45,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
   const navItems = team ? [
     { href: `/board/${team.id}`, label: 'Board', icon: 'ti-layout-kanban' },
     { href: `/report/${team.id}`, label: 'Growth', icon: 'ti-chart-radar' },
+    { href: `/goals/${team.id}`, label: 'Goals', icon: 'ti-target' },
     { href: `/analytics/${team.id}`, label: 'Analytics', icon: 'ti-chart-bar' },
     ...(isAdmin ? [{ href: `/admin/teams`, label: 'Admin', icon: 'ti-settings' }] : []),
   ] : []

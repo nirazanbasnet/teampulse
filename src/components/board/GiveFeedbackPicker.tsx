@@ -65,7 +65,7 @@ export function GiveFeedbackPicker({ peers, onPick }: GiveFeedbackPickerProps) {
                 className="group flex items-center gap-2 rounded-full border border-border bg-background py-1 pl-1 pr-3 transition-colors hover:border-primary hover:bg-accent"
               >
                 <Avatar name={prof.full_name} size={26} src={prof.avatar_url} email={prof.email} />
-                <span className="text-[12.5px] text-foreground">{prof.full_name.split(' ')[0]}</span>
+                <span className="text-xs capitalize text-foreground">{prof.full_name.split(' ')[0]}</span>
                 <i className="ti ti-plus text-[13px] text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
               </button>
             )

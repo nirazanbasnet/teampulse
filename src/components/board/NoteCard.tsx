@@ -81,6 +81,7 @@ export function NoteCard({
   const [showReport, setShowReport] = useState(false)
   const [reportText, setReportText] = useState('')
   const [showMenu, setShowMenu] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   // ── "Needs evidence" shake — visual alert when a Done attempt is blocked ──
@@ -191,6 +192,7 @@ export function NoteCard({
   }
 
   function handleDelete() {
+    setConfirmDelete(false)
     startTransition(async () => {
       await deleteNote(note.id)
     })
@@ -322,8 +324,43 @@ export function NoteCard({
               disabled={isPending}
             />
           )}
-          {/* Secondary actions in a labelled menu — clearer than a bare icon */}
-          {(!note.is_mine || (note.is_mine && note.can_edit)) && (
+          {/* Your own feedback — delete it directly, with a quick confirm so a
+              single click can't wipe it by accident. */}
+          {note.is_mine && note.can_edit && (
+            confirmDelete ? (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setConfirmDelete(false)} />
+                <span className="relative z-50 flex items-center gap-[4px]">
+                  <ActionBtn
+                    icon={isPending ? 'ti-loader-2' : 'ti-check'}
+                    label="Confirm delete"
+                    color="#993C1D"
+                    onClick={handleDelete}
+                    disabled={isPending}
+                    spin={isPending}
+                  />
+                  <ActionBtn
+                    icon="ti-x"
+                    label="Keep note"
+                    color="#6b6b67"
+                    onClick={() => setConfirmDelete(false)}
+                    disabled={isPending}
+                  />
+                </span>
+              </>
+            ) : (
+              <ActionBtn
+                icon="ti-trash"
+                label="Delete note"
+                color="#993C1D"
+                onClick={() => setConfirmDelete(true)}
+                disabled={isPending}
+              />
+            )
+          )}
+
+          {/* Others' notes — report stays in a labelled menu */}
+          {!note.is_mine && (
             <div className="relative">
               <ActionBtn
                 icon="ti-dots"
@@ -336,24 +373,13 @@ export function NoteCard({
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
                   <div className="absolute right-0 top-full z-50 mt-1 min-w-[148px] rounded-lg border border-border bg-popover py-1 shadow-lg">
-                    {!note.is_mine && (
-                      <button
-                        onClick={() => { setShowReport(true); setShowMenu(false) }}
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-[#854F0B] hover:bg-muted"
-                      >
-                        <i className="ti ti-flag text-[13px]" aria-hidden="true" />
-                        Report note
-                      </button>
-                    )}
-                    {note.is_mine && note.can_edit && (
-                      <button
-                        onClick={() => { setShowMenu(false); handleDelete() }}
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-[#993C1D] hover:bg-muted"
-                      >
-                        <i className="ti ti-trash text-[13px]" aria-hidden="true" />
-                        Delete note
-                      </button>
-                    )}
+                    <button
+                      onClick={() => { setShowReport(true); setShowMenu(false) }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-[#854F0B] hover:bg-muted"
+                    >
+                      <i className="ti ti-flag text-[13px]" aria-hidden="true" />
+                      Report note
+                    </button>
                   </div>
                 </>
               )}
