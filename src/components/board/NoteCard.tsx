@@ -45,6 +45,8 @@ interface NoteCardProps {
   shakeSignal?: number
   /** Notifies BoardView when this note's evidence list changes (keeps the Done-gate in sync). */
   onEvidenceChange?: (noteId: string, evidence: NoteEvidence[]) => void
+  /** Optimistic delete owned by BoardView (removes the note instantly + persists). */
+  onDelete?: (noteId: string) => void
 }
 
 function formatNoteDate(iso: string): string {
@@ -76,7 +78,7 @@ function renderEvidence(text: string) {
 
 export function NoteCard({
   note, currentUserId, isDragging = false, rank, onSetPriority, saving = false,
-  shakeSignal = 0, onEvidenceChange,
+  shakeSignal = 0, onEvidenceChange, onDelete,
 }: NoteCardProps) {
   const [showReport, setShowReport] = useState(false)
   const [reportText, setReportText] = useState('')
@@ -193,8 +195,19 @@ export function NoteCard({
 
   function handleDelete() {
     setConfirmDelete(false)
+    // Preferred path: BoardView removes the card instantly and persists +
+    // reverts on failure — so the note disappears the moment you confirm.
+    if (onDelete) {
+      onDelete(note.id)
+      return
+    }
+    // Fallback for contexts without a handler (relies on realtime to remove).
     startTransition(async () => {
-      await deleteNote(note.id)
+      try {
+        await deleteNote(note.id)
+      } catch (err) {
+        console.error('[note] delete failed:', err)
+      }
     })
   }
 

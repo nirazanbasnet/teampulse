@@ -12,9 +12,11 @@ interface BoardColumnProps {
   column: BoardColumnType
   currentUserId: string
   onAddNote: () => void
+  /** Optimistic delete owned by BoardView (instant removal + persist). */
+  onNoteDelete?: (noteId: string) => void
 }
 
-export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnProps) {
+export function BoardColumn({ column, currentUserId, onAddNote, onNoteDelete }: BoardColumnProps) {
   const { member, notes, isMyColumn } = column
   const profile = member.profile
 
@@ -44,7 +46,7 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
           isMyColumn && 'bg-muted',
         )}
       >
-        <Avatar name={profile.full_name} size={30} />
+        <Avatar name={profile.full_name} size={30} src={(profile as any).avatar_url} email={profile.email} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-[5px]">
             <h4 className="text-[13px] font-medium whitespace-nowrap overflow-hidden text-ellipsis m-0 capitalize">
@@ -95,6 +97,7 @@ export function BoardColumn({ column, currentUserId, onAddNote }: BoardColumnPro
               key={note.id}
               note={note}
               currentUserId={currentUserId}
+              onDelete={onNoteDelete}
             />
           ))}
         </SortableContext>

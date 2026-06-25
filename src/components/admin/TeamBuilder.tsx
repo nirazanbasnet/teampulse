@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Avatar } from '@/components/shared/Avatar'
 import { useToast } from '@/components/shared/ToastProvider'
-import { createTeam, deleteTeam, addTeamMember, removeTeamMember, setTeamRole } from '@/server/actions/teams'
+import { createTeam, deleteTeam, addTeamMember, removeTeamMember, setTeamRole, deleteUserAccount } from '@/server/actions/teams'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -48,12 +48,18 @@ export function TeamBuilder({
   // with the other roster transitions.
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // Local candidate pool so a deleted account disappears from the list instantly.
+  const [candidateList, setCandidateList] = useState(candidates)
+  // The account pending permanent deletion (drives its confirm modal).
+  const [deleteUserTarget, setDeleteUserTarget] = useState<{ id: string; name: string; email: string } | null>(null)
+  const [deletingUser, setDeletingUser] = useState(false)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const { toast } = useToast()
 
   // Re-sync when the server sends fresh data (e.g. after creating/deleting a team).
   useEffect(() => { setTeams(initialTeams) }, [initialTeams])
+  useEffect(() => { setCandidateList(candidates) }, [candidates])
 
   const activeTeam = teams.find(t => t.id === selectedTeam)
 
@@ -173,9 +179,36 @@ export function TeamBuilder({
     })
   }
 
+  // Permanently delete a user account (admin-only). Cascades server-side;
+  // optimistically drops them from the candidate list and every team roster.
+  function handleDeleteUser() {
+    if (!deleteUserTarget || deletingUser) return
+    const { id, name } = deleteUserTarget
+    setError('')
+    setDeletingUser(true)
+    startTransition(async () => {
+      try {
+        await deleteUserAccount({ workspaceId, profileId: id })
+        setCandidateList(prev => prev.filter(c => c.profile_id !== id))
+        setTeams(prev => prev.map(t => ({
+          ...t,
+          team_members: t.team_members.filter((mm: any) => mm.profile_id !== id),
+        })))
+        setDeleteUserTarget(null)
+        toast(`${name}’s account deleted`)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Failed to delete account'
+        setError(msg)
+        toast(msg, 'error')
+      } finally {
+        setDeletingUser(false)
+      }
+    })
+  }
+
   const currentMembers = activeTeam?.team_members ?? []
   const currentMemberIds = new Set(currentMembers.map((m: any) => m.profile_id))
-  const addableMembers = candidates.filter(m => !currentMemberIds.has(m.profile_id))
+  const addableMembers = candidateList.filter(m => !currentMemberIds.has(m.profile_id))
 
   return (
     <div>
@@ -332,33 +365,50 @@ export function TeamBuilder({
                 <div className="px-[14px] py-2.5 border-b border-border bg-muted text-xs font-medium text-muted-foreground">
                   Add members
                 </div>
-                {addableMembers.map(m => (
-                  <div key={m.profile_id} className="flex items-center gap-2.5 px-3.5 py-2 border-b border-border bg-white">
-                    <Avatar name={m.profile?.full_name ?? ''} size={26} src={m.profile?.avatar_url} email={m.profile?.email} />
-                    <div className="flex-1">
-                      <div className="text-xs text-foreground">{m.profile?.full_name}</div>
-                      <div className="text-[11px] text-muted-foreground">{m.profile?.email}</div>
-                    </div>
-                    <button
-                      onClick={() => handleAddMember(m.profile_id)}
-                      disabled={isPending}
-                      title="Add to team"
-                      className="py-1 px-2.5 text-[11px] rounded-[6px] border border-border bg-transparent cursor-pointer flex items-center gap-1 text-muted-foreground disabled:opacity-60 min-w-[64px] justify-center"
-                    >
-                      {addingId === m.profile_id ? (
-                        <>
-                          <i className="ti ti-loader-2 text-xs animate-spin" aria-hidden="true" />
-                          Adding…
-                        </>
-                      ) : (
-                        <>
-                          <i className="ti ti-plus text-xs" aria-hidden="true" />
-                          Add
-                        </>
+                {addableMembers.map(m => {
+                  const name = m.profile?.full_name ?? 'Member'
+                  // Admins can permanently delete any non-admin account.
+                  const canDelete = canCreateTeams && !adminIds.has(m.profile_id)
+                  return (
+                    <div key={m.profile_id} className="flex items-center gap-2.5 px-3.5 py-2 border-b border-border bg-white">
+                      <Avatar name={m.profile?.full_name ?? ''} size={26} src={m.profile?.avatar_url} email={m.profile?.email} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-foreground truncate">{m.profile?.full_name}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{m.profile?.email}</div>
+                      </div>
+
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeleteUserTarget({ id: m.profile_id, name, email: m.profile?.email ?? '' })}
+                          disabled={isPending}
+                          title="Delete account permanently"
+                          aria-label={`Delete ${name}'s account`}
+                          className="w-[28px] h-[28px] rounded-[6px] border border-border bg-transparent cursor-pointer flex items-center justify-center text-[#993C1D] text-[13px] opacity-60 hover:opacity-100 transition-opacity duration-150 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <i className="ti ti-trash" aria-hidden="true" />
+                        </button>
                       )}
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        onClick={() => handleAddMember(m.profile_id)}
+                        disabled={isPending}
+                        title="Add to team"
+                        className="py-1 px-2.5 text-[11px] rounded-[6px] border border-border bg-transparent cursor-pointer flex items-center gap-1 text-muted-foreground disabled:opacity-60 min-w-[64px] justify-center"
+                      >
+                        {addingId === m.profile_id ? (
+                          <>
+                            <i className="ti ti-loader-2 text-xs animate-spin" aria-hidden="true" />
+                            Adding…
+                          </>
+                        ) : (
+                          <>
+                            <i className="ti ti-plus text-xs" aria-hidden="true" />
+                            Add
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -422,6 +472,56 @@ export function TeamBuilder({
                 <>
                   <i className="ti ti-trash" aria-hidden="true" />
                   Delete team
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete-account confirmation — permanent + global; locked while deleting. */}
+      <Dialog
+        open={!!deleteUserTarget}
+        onOpenChange={open => { if (!open && !deletingUser) setDeleteUserTarget(null) }}
+      >
+        <DialogContent
+          className="max-w-[440px]"
+          onEscapeKeyDown={e => { if (deletingUser) e.preventDefault() }}
+          onInteractOutside={e => { if (deletingUser) e.preventDefault() }}
+          onPointerDownOutside={e => { if (deletingUser) e.preventDefault() }}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#993C1D]">
+              <i className="ti ti-alert-triangle text-base" aria-hidden="true" />
+              Delete {deleteUserTarget?.name}’s account?
+            </DialogTitle>
+            <DialogDescription>
+              This permanently deletes <span className="font-medium text-foreground">{deleteUserTarget?.email}</span> — their login,
+              profile, and all feedback they wrote or received, across every workspace. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deletingUser && (
+            <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
+              Deleting the account and all their data…
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDeleteUserTarget(null)} disabled={deletingUser}>
+              Cancel
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteUser} disabled={deletingUser}>
+              {deletingUser ? (
+                <>
+                  <i className="ti ti-loader-2 animate-spin" aria-hidden="true" />
+                  Deleting…
+                </>
+              ) : (
+                <>
+                  <i className="ti ti-trash" aria-hidden="true" />
+                  Delete account
                 </>
               )}
             </Button>

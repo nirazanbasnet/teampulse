@@ -143,6 +143,101 @@ export async function setTeamRole(
   return { success: true }
 }
 
+// Remove a person from the WHOLE workspace: their workspace membership and
+// every team in it. Their account, login, and past feedback are untouched —
+// this just revokes access (re-add them anytime). Workspace-admin only.
+export async function removeWorkspaceMember(
+  { workspaceId, profileId }: { workspaceId: string; profileId: string },
+) {
+  const supabase = createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  if (profileId === user.id) throw new Error("You can't remove yourself from the workspace.")
+
+  const service = createServiceClient()
+
+  // Caller must be an admin of this workspace.
+  const { data: adminRow } = await service
+    .from('workspace_members').select('id')
+    .eq('workspace_id', workspaceId)
+    .eq('profile_id', user.id)
+    .eq('role', 'admin')
+    .maybeSingle()
+  if (!adminRow) throw new Error('You must be a workspace admin to remove members.')
+
+  // Don't let an admin remove another admin (demote them first).
+  const { data: targetRow } = await service
+    .from('workspace_members').select('role')
+    .eq('workspace_id', workspaceId)
+    .eq('profile_id', profileId)
+    .maybeSingle()
+  if (targetRow?.role === 'admin') {
+    throw new Error("That person is a workspace admin — remove their admin role first.")
+  }
+
+  // Drop them from every team in this workspace, then the workspace itself.
+  const { data: teamRows } = await service
+    .from('teams').select('id').eq('workspace_id', workspaceId)
+  const teamIds = (teamRows ?? []).map((t: any) => t.id)
+  if (teamIds.length) {
+    const { error: tmError } = await service
+      .from('team_members').delete()
+      .eq('profile_id', profileId)
+      .in('team_id', teamIds)
+    if (tmError) throw new Error(`Failed to remove from teams: ${tmError.message}`)
+  }
+
+  const { error } = await service
+    .from('workspace_members').delete()
+    .eq('workspace_id', workspaceId)
+    .eq('profile_id', profileId)
+  if (error) throw new Error(`Failed to remove from workspace: ${error.message}`)
+
+  // Optimistic UI in TeamBuilder — skip the refresh (see addTeamMember).
+  return { success: true }
+}
+
+// Permanently delete a user account. Removes their auth login, which cascades
+// (profiles → workspace_members, team_members, notes, …) so every trace of
+// them is gone, in ALL workspaces. Irreversible. Workspace-admin only; can't
+// delete yourself or anyone who is an admin of any workspace.
+export async function deleteUserAccount(
+  { workspaceId, profileId }: { workspaceId: string; profileId: string },
+) {
+  const supabase = createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+  if (profileId === user.id) throw new Error("You can't delete your own account.")
+
+  const service = createServiceClient()
+
+  // Caller must be an admin of this workspace.
+  const { data: adminRow } = await service
+    .from('workspace_members').select('id')
+    .eq('workspace_id', workspaceId)
+    .eq('profile_id', user.id)
+    .eq('role', 'admin')
+    .maybeSingle()
+  if (!adminRow) throw new Error('You must be a workspace admin to delete accounts.')
+
+  // Never delete another admin (of any workspace) — demote them first.
+  const { data: targetAdmin } = await service
+    .from('workspace_members').select('id')
+    .eq('profile_id', profileId)
+    .eq('role', 'admin')
+    .limit(1)
+    .maybeSingle()
+  if (targetAdmin) {
+    throw new Error("That person is a workspace admin — remove their admin role before deleting them.")
+  }
+
+  // Delete the auth user; the profiles FK cascade removes everything else.
+  const { error } = await service.auth.admin.deleteUser(profileId)
+  if (error) throw new Error(`Failed to delete account: ${error.message}`)
+
+  return { success: true }
+}
+
 export async function removeTeamMember({ teamId, profileId }: { teamId: string; profileId: string }) {
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()

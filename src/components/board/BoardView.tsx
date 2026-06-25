@@ -11,7 +11,7 @@
 
 'use client'
 
-import { useState, useCallback, useTransition, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useTransition, type ReactNode } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -31,14 +31,14 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 
-import { BoardColumn } from './BoardColumn'
 import { NoteCard } from './NoteCard'
 import { AddNoteModal } from './AddNoteModal'
-import { GiveFeedbackPicker } from './GiveFeedbackPicker'
+import { PeerRoster } from './PeerRoster'
+import { BoardColumn } from './BoardColumn'
 import { MetricsBar } from './MetricsBar'
 import { Avatar } from '@/components/shared/Avatar'
 import { useBoardRealtime } from '@/lib/hooks/use-board-realtime'
-import { reorderNotes, updateNoteState } from '@/server/actions/notes'
+import { reorderNotes, updateNoteState, deleteNote } from '@/server/actions/notes'
 import { cn } from '@/lib/utils'
 
 import type { BoardState, NoteSafe, NoteEvidence } from '@/lib/types'
@@ -59,11 +59,21 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
   const [activeNote, setActiveNote] = useState<NoteSafe | null>(null)
   const [addModalFor, setAddModalFor] = useState<{ recipientId: string; recipientName: string } | null>(null)
   const [savingIds, setSavingIds] = useState<Set<string>>(() => new Set())
-  // Team feedback is expanded by default; collapse to focus on your own area.
-  const [showPeers, setShowPeers] = useState(true)
   // Drives the "needs evidence" shake on a card whose drag-to-Done was blocked.
   const [shake, setShake] = useState<{ id: string; n: number } | null>(null)
   const [, startTransition] = useTransition()
+
+  // Team-feedback view: the overview-first roster or the classic Kanban columns.
+  // Persisted so the choice sticks; read after mount to avoid a hydration mismatch.
+  const [view, setView] = useState<'roster' | 'kanban'>('roster')
+  useEffect(() => {
+    const saved = localStorage.getItem('teampulse:boardView')
+    if (saved === 'kanban' || saved === 'roster') setView(saved)
+  }, [])
+  function changeView(v: 'roster' | 'kanban') {
+    setView(v)
+    try { localStorage.setItem('teampulse:boardView', v) } catch {}
+  }
 
   // Bump a card's shake signal so NoteCard replays the alert animation.
   function triggerCardShake(id: string) {
@@ -156,6 +166,24 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
         next.delete(noteId)
         return next
       })
+    })
+  }
+
+  // Delete a note the current user authored: remove it from the board the
+  // instant they confirm (optimistic), persist, and restore on failure.
+  function handleDeleteNote(noteId: string) {
+    const col  = columns.find(c => c.notes.some(n => n.id === noteId))
+    const note = col?.notes.find(n => n.id === noteId)
+    setColumns(prev => prev.map(c => ({ ...c, notes: c.notes.filter(n => n.id !== noteId) })))
+    deleteNote(noteId).catch(err => {
+      console.error('[note] delete failed, restoring:', err)
+      if (col && note) {
+        setColumns(prev => prev.map(c =>
+          c.member.profile_id === col.member.profile_id
+            ? { ...c, notes: [...c.notes, note] }
+            : c,
+        ))
+      }
     })
   }
 
@@ -256,16 +284,6 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
       />
 
       <div className="px-4 py-3">
-        {/* Give feedback — searchable teammate picker (scales to any team size) */}
-        {otherColumns.length > 0 && (
-          <div className="mb-4">
-            <GiveFeedbackPicker
-              peers={otherColumns}
-              onPick={(recipientId, recipientName) => setAddModalFor({ recipientId, recipientName })}
-            />
-          </div>
-        )}
-
         <DndContext
           id="teampulse-board"
           sensors={sensors}
@@ -294,7 +312,7 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
                   accent
                   header={
                     <div className="px-3 pt-2.5 pb-[9px] border-b border-border flex items-center gap-[9px] bg-accent/50 rounded-t-[12px]">
-                      <Avatar name={myColumn.member.profile.full_name} size={30} />
+                      <Avatar name={myColumn.member.profile.full_name} size={30} src={(myColumn.member.profile as any).avatar_url} email={myColumn.member.profile.email} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-[5px]">
                           <h4 className="text-[13px] font-medium m-0">You</h4>
@@ -366,36 +384,26 @@ export function BoardView({ boardState, currentUserId }: BoardViewProps) {
             </div>
           </div>
 
-          {/* Browse team feedback — peers collapsed by default to keep the
-              board calm; expand on demand. Scrolls horizontally on overflow. */}
+          {/* Team feedback — switchable between the overview-first roster
+              (calm summary grid + focus drawer) and the classic Kanban columns. */}
           {otherColumns.length > 0 && (
-            <div className="mt-4">
-              <button
-                onClick={() => setShowPeers(v => !v)}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] text-muted-foreground hover:text-foreground"
-              >
-                <i className={cn('ti text-[14px] transition-transform', showPeers ? 'ti-chevron-down' : 'ti-chevron-right')} aria-hidden="true" />
-                Browse team feedback
-                <span className="font-mono text-[11px] text-muted-foreground/70">{otherColumns.length}</span>
-              </button>
-              {showPeers && (
-                <div className="mt-2 flex items-start gap-3 overflow-x-auto pb-2">
-                  {otherColumns.map(col => (
-                    <BoardColumn
-                      key={col.member.profile_id}
-                      column={{ ...col, notes: [...col.notes].sort(byNewest) }}
-                      currentUserId={currentUserId}
-                      onAddNote={() =>
-                        setAddModalFor({
-                          recipientId: col.member.profile_id,
-                          recipientName: col.member.profile.full_name,
-                        })
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            view === 'roster' ? (
+              <PeerRoster
+                peers={otherColumns}
+                currentUserId={currentUserId}
+                onAddNote={(recipientId, recipientName) => setAddModalFor({ recipientId, recipientName })}
+                onNoteDelete={handleDeleteNote}
+                toolbar={<ViewToggle value={view} onChange={changeView} />}
+              />
+            ) : (
+              <KanbanColumns
+                peers={otherColumns}
+                currentUserId={currentUserId}
+                onAddNote={(recipientId, recipientName) => setAddModalFor({ recipientId, recipientName })}
+                onNoteDelete={handleDeleteNote}
+                toolbar={<ViewToggle value={view} onChange={changeView} />}
+              />
+            )
           )}
 
           <DragOverlay>
@@ -476,6 +484,73 @@ function DropLane({
             ))
           )}
         </SortableContext>
+      </div>
+    </div>
+  )
+}
+
+// ── Roster ↔ Kanban view toggle ──────────────────────────────
+
+function ViewToggle({
+  value, onChange,
+}: {
+  value: 'roster' | 'kanban'
+  onChange: (v: 'roster' | 'kanban') => void
+}) {
+  const opts = [
+    { key: 'roster' as const, label: 'Roster', icon: 'ti-layout-grid' },
+    { key: 'kanban' as const, label: 'Kanban', icon: 'ti-layout-columns' },
+  ]
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5">
+      {opts.map(o => (
+        <button
+          key={o.key}
+          onClick={() => onChange(o.key)}
+          aria-pressed={value === o.key}
+          title={`${o.label} view`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] transition-colors',
+            value === o.key ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <i className={cn('ti text-[14px]', o.icon)} aria-hidden="true" />
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ── Classic Kanban: one column of feedback per teammate ──────
+
+function KanbanColumns({
+  peers, currentUserId, onAddNote, onNoteDelete, toolbar,
+}: {
+  peers: BoardState['columns']
+  currentUserId: string
+  onAddNote: (recipientId: string, recipientName: string) => void
+  onNoteDelete: (noteId: string) => void
+  toolbar: ReactNode
+}) {
+  return (
+    <div className="mt-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2 px-1">
+        <i className="ti ti-layout-columns text-[15px] text-foreground/70" aria-hidden="true" />
+        <h3 className="m-0 text-[13px] font-medium">Team feedback</h3>
+        <span className="text-[11px] text-muted-foreground">· one column per teammate</span>
+        <div className="ml-auto">{toolbar}</div>
+      </div>
+      <div className="flex items-start gap-3 overflow-x-auto pb-2">
+        {peers.map(col => (
+          <BoardColumn
+            key={col.member.profile_id}
+            column={{ ...col, notes: [...col.notes].sort(byNewest) }}
+            currentUserId={currentUserId}
+            onAddNote={() => onAddNote(col.member.profile_id, col.member.profile.full_name)}
+            onNoteDelete={onNoteDelete}
+          />
+        ))}
       </div>
     </div>
   )

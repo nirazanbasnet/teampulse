@@ -31,6 +31,16 @@ async function sha256Hex(input: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+// Generated-avatar fallback for people without a Gravatar photo. DiceBear is
+// public + keyless and returns a distinct image per person (a 200, unlike
+// Gravatar's `d=404` which logged a console error for everyone). Change
+// AVATAR_STYLE for a different look — see https://www.dicebear.com/styles
+// (good options: 'notionists-neutral', 'glass', 'shapes', 'thumbs', 'micah').
+const AVATAR_STYLE = 'notionists-neutral'
+function generatedAvatar(seed: string): string {
+  return `https://api.dicebear.com/9.x/${AVATAR_STYLE}/svg?seed=${encodeURIComponent(seed)}`
+}
+
 interface AvatarProps {
   name:       string
   size?:      number
@@ -38,7 +48,7 @@ interface AvatarProps {
   style?:     React.CSSProperties
   /** Account photo (e.g. Google profile picture). Preferred when present. */
   src?:       string | null
-  /** Registered email — falls back to its Gravatar when no `src` is given. */
+  /** Registered email — resolves to its Gravatar photo, else a generated avatar. */
   email?:     string | null
 }
 
@@ -47,8 +57,10 @@ export function Avatar({ name, size = 32, fontSize, style, src, email }: AvatarP
   const palette  = getPalette(name)
   const fs       = fontSize ?? Math.round(size * 0.36)
 
-  // Resolve the best image: an explicit src (account photo) wins; otherwise the
-  // email's Gravatar — which 404s (and so falls back to initials) when none.
+  // Resolve the best image. Account photo wins; otherwise the email's Gravatar
+  // — which, when no photo exists, 302-redirects to a generated avatar (a 200
+  // image), so there is never a console 404. Initials remain the last resort if
+  // even that fails to load.
   const [imgUrl,  setImgUrl]  = useState<string | null>(src ?? null)
   const [errored, setErrored] = useState(false)
 
@@ -59,14 +71,18 @@ export function Avatar({ name, size = 32, fontSize, style, src, email }: AvatarP
     if (src) { setImgUrl(src); return }
 
     const addr = email?.trim().toLowerCase()
-    if (!addr) { setImgUrl(null); return }
+    if (!addr) { setImgUrl(generatedAvatar(name)); return }
 
     sha256Hex(addr)
-      .then(hash => { if (!cancelled) setImgUrl(`https://www.gravatar.com/avatar/${hash}?s=${size * 2}&d=404`) })
-      .catch(() => { if (!cancelled) setImgUrl(null) })
+      .then(hash => {
+        if (cancelled) return
+        const fallback = generatedAvatar(addr)
+        setImgUrl(`https://www.gravatar.com/avatar/${hash}?s=${size * 2}&d=${encodeURIComponent(fallback)}`)
+      })
+      .catch(() => { if (!cancelled) setImgUrl(generatedAvatar(addr)) })
 
     return () => { cancelled = true }
-  }, [src, email, size])
+  }, [src, email, name, size])
 
   const showImage = imgUrl && !errored
 
