@@ -73,6 +73,11 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
     .maybeSingle()
   const isAdmin = !!adminRow
 
+  // Leads a team somewhere → gets the team-management entry in the Topbar.
+  const { data: leadRow } = await supabase
+    .from('team_members').select('id').eq('profile_id', user.id).eq('role', 'lead').limit(1).maybeSingle()
+  const isLead = !!leadRow
+
   // All teams the current user belongs to (for the team switcher)
   const { data: myTeamRows } = await supabase
     .from('team_members')
@@ -155,6 +160,7 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
         team={team as any}
         cycle={cycle ?? null}
         isAdmin={isAdmin}
+        isLead={isLead}
         teams={userTeams}
       />
       <BoardView

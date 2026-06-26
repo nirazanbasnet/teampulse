@@ -15,11 +15,13 @@ interface TopbarProps {
   team?: Team
   cycle?: FeedbackCycle | null
   isAdmin?: boolean
+  /** Leads a team somewhere — gets into team management, but not the rest of admin. */
+  isLead?: boolean
   /** All teams the current user belongs to — drives the team switcher. */
   teams?: { id: string; name: string }[]
 }
 
-export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProps) {
+export function Topbar({ profile, team, cycle, isAdmin, isLead, teams = [] }: TopbarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [switcherOpen, setSwitcherOpen] = useState(false)
@@ -47,7 +49,12 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
     { href: `/report/${team.id}`, label: 'Growth', icon: 'ti-chart-radar' },
     { href: `/goals/${team.id}`, label: 'Goals', icon: 'ti-target' },
     { href: `/analytics/${team.id}`, label: 'Analytics', icon: 'ti-chart-bar' },
-    ...(isAdmin ? [{ href: `/admin/teams`, label: 'Admin', icon: 'ti-settings' }] : []),
+    // Admins get the full admin area; leads get into team management only.
+    ...(isAdmin
+      ? [{ href: `/admin/teams`, label: 'Admin', icon: 'ti-settings' }]
+      : isLead
+        ? [{ href: `/admin/teams`, label: 'Teams', icon: 'ti-users-group' }]
+        : []),
   ] : []
 
   async function handleSignOut() {
@@ -171,7 +178,7 @@ export function Topbar({ profile, team, cycle, isAdmin, teams = [] }: TopbarProp
                   <div className="text-[13px] font-medium text-foreground truncate">{profile.full_name}</div>
                   <div className="text-[11px] text-muted-foreground truncate">{profile.email}</div>
                 </div>
-                {isAdmin && (
+                {(isAdmin || isLead) && (
                   <Link
                     href="/admin/teams"
                     onClick={() => setMenuOpen(false)}

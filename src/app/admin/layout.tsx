@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div>
-      <Topbar profile={profile as any} isAdmin={!!adminRow} teams={userTeams} />
+      <Topbar profile={profile as any} isAdmin={!!adminRow} isLead={!!leadRow} teams={userTeams} />
       <AdminNav isAdmin={!!adminRow} isLead={!!leadRow} />
       {children}
     </div>

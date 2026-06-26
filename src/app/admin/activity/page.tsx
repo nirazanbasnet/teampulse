@@ -31,6 +31,10 @@ export default async function ActivityPage() {
   const workspace = (anyMembership as any).workspaces
   const isAdmin = !!adminMembership
 
+  // Activity un-anonymises feedback (shows author identity), so it's
+  // workspace-admin only — team leads are sent back to team management.
+  if (!isAdmin) redirect('/admin/teams')
+
   // Teams the user leads.
   const { data: ledRows } = await supabase
     .from('team_members').select('team_id').eq('profile_id', user.id).eq('role', 'lead')

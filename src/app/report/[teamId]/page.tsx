@@ -72,6 +72,8 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
 
   const { data: adminRow } = await supabase
     .from('workspace_members').select('id').eq('profile_id', user.id).eq('role', 'admin').limit(1).maybeSingle()
+  const { data: leadRow } = await supabase
+    .from('team_members').select('id').eq('profile_id', user.id).eq('role', 'lead').limit(1).maybeSingle()
   const activeCycle = (cycles ?? []).find((c: any) => c.status === 'active') ?? null
 
   const generatedOn = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -84,6 +86,7 @@ export default async function ReportPage({ params, searchParams }: ReportPagePro
           team={team as any}
           cycle={activeCycle as any}
           isAdmin={!!adminRow}
+          isLead={!!leadRow}
           teams={userTeams}
         />
       </div>

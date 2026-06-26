@@ -46,17 +46,17 @@ export async function createTeam({ workspaceId, name }: { workspaceId: string; n
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-
-  const { error } = await supabase.from('teams').insert({
-    workspace_id: workspaceId,
-    name,
-    created_by:  user.id,
-  })
+  // Return the created row (same shape the admin page loads) so the client can
+  // show the new team instantly instead of waiting on a full RSC refresh.
+  const { data, error } = await supabase
+    .from('teams')
+    .insert({ workspace_id: workspaceId, name, created_by: user.id })
+    .select('*, team_members(id, profile_id, role, added_at, profiles!team_members_profile_id_fkey(id, full_name, email, avatar_url))')
+    .single()
 
   if (error) throw new Error(`Failed to create team: ${error.message}`)
   revalidatePath('/admin/teams')
-  return { success: true }
+  return { success: true, team: data }
 }
 
 export async function updateTeam({ teamId, name }: { teamId: string; name: string }) {

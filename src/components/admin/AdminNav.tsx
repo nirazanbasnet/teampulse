@@ -4,16 +4,18 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
-// Sub-navigation across the admin sections. Team management + Activity are
-// available to team leads too; Cycles + Moderation are admin-only.
+// Sub-navigation across the admin sections. Team management + Cycles are
+// available to team leads too (leads can open cycles for their teams, but
+// not close them). Activity + Moderation are admin-only (Activity
+// un-anonymises feedback).
 export function AdminNav({ isAdmin, isLead }: { isAdmin: boolean; isLead: boolean }) {
   const pathname = usePathname()
   if (!isAdmin && !isLead) return null
 
   const items = [
     { href: '/admin/teams', label: 'Teams', icon: 'ti-users-group', show: isAdmin || isLead },
-    { href: '/admin/activity', label: 'Activity', icon: 'ti-history', show: isAdmin || isLead },
-    { href: '/admin/cycles', label: 'Cycles', icon: 'ti-clock-hour-4', show: isAdmin },
+    { href: '/admin/cycles', label: 'Cycles', icon: 'ti-clock-hour-4', show: isAdmin || isLead },
+    { href: '/admin/activity', label: 'Activity', icon: 'ti-history', show: isAdmin },
     { href: '/admin/moderation', label: 'Moderation', icon: 'ti-shield', show: isAdmin },
   ].filter(i => i.show)
 

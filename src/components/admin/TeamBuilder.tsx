@@ -70,7 +70,13 @@ export function TeamBuilder({
     setCreatingPending(true)
     startTransition(async () => {
       try {
-        await createTeam({ workspaceId, name })
+        const result = await createTeam({ workspaceId, name })
+        // Show the new team immediately (with an empty roster) and select it,
+        // so there's no gap where it "isn't there yet". router.refresh() then
+        // reconciles with server truth.
+        const created = { ...(result.team as any), team_members: (result.team as any)?.team_members ?? [] }
+        setTeams(prev => (prev.some(t => t.id === created.id) ? prev : [...prev, created]))
+        setSelectedTeam(created.id)
         setNewTeamName('')
         setCreating(false)
         toast(`Team “${name}” created`)

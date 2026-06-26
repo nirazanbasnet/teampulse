@@ -130,6 +130,9 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
     .eq('role', 'admin')
     .maybeSingle()
   const isAdmin = !!adminRow
+  const { data: leadRow } = await supabase
+    .from('team_members').select('id').eq('profile_id', user.id).eq('role', 'lead').limit(1).maybeSingle()
+  const isLead = !!leadRow
 
   // Topbar data: profile + teams the user belongs to
   const { data: profile } = await supabase
@@ -148,6 +151,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
         team={team as any}
         cycle={activeCycle as any}
         isAdmin={isAdmin}
+        isLead={isLead}
         teams={userTeams}
       />
       <AnalyticsDashboard

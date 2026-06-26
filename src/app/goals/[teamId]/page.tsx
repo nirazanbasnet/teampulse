@@ -75,6 +75,8 @@ export default async function GoalsPage({ params, searchParams }: GoalsPageProps
     .from('workspace_members').select('id')
     .eq('workspace_id', (team as any).workspace_id)
     .eq('profile_id', user.id).eq('role', 'admin').maybeSingle()
+  const { data: leadRow } = await supabase
+    .from('team_members').select('id').eq('profile_id', user.id).eq('role', 'lead').limit(1).maybeSingle()
 
   const activeCycle = (cycles ?? []).find((c: any) => c.id === activeCycleId) ?? null
 
@@ -85,6 +87,7 @@ export default async function GoalsPage({ params, searchParams }: GoalsPageProps
         team={team as any}
         cycle={activeCycle as any}
         isAdmin={!!adminRow}
+        isLead={!!leadRow}
         teams={userTeams}
       />
       <GoalsView

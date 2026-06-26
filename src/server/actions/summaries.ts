@@ -42,7 +42,7 @@ export async function closeCycleAndGenerateSummaries(cycleId: string) {
   if (!cycle) throw new Error('Cycle not found.')
   if (cycle.status !== 'active') throw new Error('Cycle is not active.')
 
-  // Verify admin
+  // A workspace admin (any team) OR the cycle team's own lead may close it.
   const workspaceId = (cycle.teams as any).workspace_id
   const { data: adminCheck } = await serviceClient
     .from('workspace_members')
@@ -50,9 +50,20 @@ export async function closeCycleAndGenerateSummaries(cycleId: string) {
     .eq('workspace_id', workspaceId)
     .eq('profile_id', user.id)
     .eq('role', 'admin')
-    .single()
+    .maybeSingle()
 
-  if (!adminCheck) throw new Error('Admin access required.')
+  let allowed = !!adminCheck
+  if (!allowed) {
+    const { data: leadCheck } = await serviceClient
+      .from('team_members')
+      .select('id')
+      .eq('team_id', (cycle as any).team_id)
+      .eq('profile_id', user.id)
+      .eq('role', 'lead')
+      .maybeSingle()
+    allowed = !!leadCheck
+  }
+  if (!allowed) throw new Error("You must be a workspace admin or this team's lead to close a cycle.")
 
   // Load all notes for this cycle with full data (service role)
   const { data: allNotes } = await serviceClient
