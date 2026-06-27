@@ -75,10 +75,12 @@ export async function createNote(input: CreateNoteInput): Promise<CreateNoteResu
     }
   }
 
-  // Determine current position (append to end of recipient's column)
+  // Determine current position (append to end of recipient's column).
+  // Select a specific (non-author_id) column — author_id is no longer
+  // client-readable after 014.
   const { count } = await supabase
     .from('notes')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('team_id', input.team_id)
     .eq('recipient_id', input.recipient_id)
 
@@ -308,12 +310,13 @@ export async function moveNote(noteId: string, newRecipientId: string, teamId: s
     throw new Error('Cannot move note to your own column.')
   }
 
-  // RLS: only the author can update (within grace period)
+  // RLS enforces "only the author, within the grace period" on this update,
+  // so we don't filter by author_id here (it's no longer client-readable
+  // after 014, and a WHERE on it would need SELECT access).
   const { error } = await supabase
     .from('notes')
     .update({ recipient_id: newRecipientId })
     .eq('id', noteId)
-    .eq('author_id', user.id)
 
   if (error) throw new Error(`Failed to move note: ${error.message}`)
 
